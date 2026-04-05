@@ -674,7 +674,7 @@ if symbol and yf_symbol:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            st.markdown("### ⚖️ 동종 업계 비교")
+            st.markdown("### 4. 동종 업계 비교")
             if not peer_df.empty:
                 q_mark = "<span style='display:inline-block; width:14px; height:14px; border:1.5px solid #8b949e; color:#8b949e; border-radius:50%; text-align:center; line-height:11px; font-size:10px; font-weight:bold; cursor:help; vertical-align:middle; margin-left:4px;' title='{0}'>?</span>"
                 table_html = "<table class='peer-table'><tr>" \
