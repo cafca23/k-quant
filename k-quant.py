@@ -11,7 +11,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 
-st.set_page_config(page_title="All 퀀트 스캐너", layout="wide", page_icon="📊", initial_sidebar_state="expanded")
+st.set_page_config(page_title="국장 All 퀀트 스캐너", layout="wide", page_icon="📊", initial_sidebar_state="expanded")
 
 # --- Custom Premium CSS ---
 st.markdown("""
@@ -348,7 +348,7 @@ def fmt_pct(val):
 # --- 메인 로직 ---
 col_header1, col_header2 = st.columns([3, 1])
 with col_header1:
-    st.markdown("<h1 style='margin-bottom: 0; font-size: 2.0rem;'>📊 All 퀀트 스캐너</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='margin-bottom: 0; font-size: 2.0rem;'>📊 국장 All 퀀트 스캐너</h1>", unsafe_allow_html=True)
     st.markdown("<p style='color: #8b949e; font-size: 1.05rem; margin-top: 5px;'>대한민국 주식 시장(KRX) 맞춤형 4차원 밸류에이션 매트릭스</p>", unsafe_allow_html=True)
 
 if symbol and yf_symbol:
