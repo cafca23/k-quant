@@ -11,7 +11,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 
-st.set_page_config(page_title="All 퀀트 스캐너", layout="wide", page_icon="📊", initial_sidebar_state="expanded")
+st.set_page_config(page_title="국장 All 퀀트 스캐너", layout="wide", page_icon="📊", initial_sidebar_state="expanded")
 
 # --- Custom Premium CSS ---
 st.markdown("""
