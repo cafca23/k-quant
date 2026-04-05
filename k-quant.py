@@ -30,7 +30,7 @@ st.markdown("""
     .badge-value { background-color: rgba(3, 105, 161, 0.2); color: #38bdf8; border: 1px solid #0284c7; }
     .badge-cyclical { background-color: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #d97706; }
     .peer-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.95rem; }
-    .peer-table th { background-color: #161b22; color: #8b949e; padding: 12px 8px; text-align: right; border-bottom: 2px solid #30363d; font-weight: 600; }
+    .peer-table th { background-color: #161b22; color: #8b949e; padding: 12px 8px; text-align: right; border-bottom: 2px solid #30363d; font-weight: 600; cursor: help; }
     .peer-table th:first-child { text-align: left; }
     .peer-table td { padding: 10px 8px; text-align: right; border-bottom: 1px solid #21262d; color: #e6edf3; }
     .peer-table td:first-child { text-align: left; font-weight: bold; }
@@ -103,9 +103,10 @@ def get_naver_finance_fundamentals(symbol, current_price):
         if pd.notna(data['PBR']) and pd.notna(data['PER']) and data['PER'] > 0:
             data['ROE'] = data['PBR'] / data['PER']
             
-        foreign_td = soup.find('th', string='외국인소진율')
-        if foreign_td:
-            foreign_val = foreign_td.find_next_sibling('td').text.strip().replace('%', '')
+        # 💡 [버그 픽스] '외국인소진율(B/A)' 등 텍스트 유연성 확보 (0.00% 오류 해결)
+        foreign_th = soup.find('th', string=re.compile('외국인소진율'))
+        if foreign_th:
+            foreign_val = foreign_th.find_next_sibling('td').text.strip().replace('%', '')
             data['FOREIGN_RATIO'] = float(foreign_val) / 100.0
             
     except: pass
@@ -293,10 +294,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_ai_prompt_fix':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_final_ui2':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_ai_prompt_fix'
+        st.session_state.app_version = 'v_k_quant_final_ui2'
         
     st.divider()
     
@@ -606,7 +607,8 @@ if symbol and yf_symbol:
             </div>
             """, unsafe_allow_html=True)
             
-            st.markdown("<br>### ⚔️ 4대 리스크 & 수급 지표", unsafe_allow_html=True)
+            # 💡 [요청 반영 1] HTML로 H3 사이즈 강제 고정 및 이모지 삭제
+            st.markdown("<br><h3 style='margin-bottom: 10px;'>4대 리스크 & 수급 지표</h3>", unsafe_allow_html=True)
             with st.container(border=True):
                 kc1, kc2, kc3, kc4 = st.columns(4)
                 
@@ -670,7 +672,8 @@ if symbol and yf_symbol:
             
             st.markdown("### ⚖️ 동종 업계 비교")
             if not peer_df.empty:
-                q_mark = "<span style='display:inline-block; width:16px; height:16px; background-color:#29b6f6; color:#161b22; border-radius:50%; text-align:center; line-height:16px; font-size:12px; font-weight:bold; cursor:help;' title='{0}'>?</span>"
+                # 💡 [요청 반영 3] 완벽한 회색 테두리 원형 물음표 (CSS 커스텀 UI)
+                q_mark = "<span style='display:inline-block; width:14px; height:14px; border:1.5px solid #8b949e; color:#8b949e; border-radius:50%; text-align:center; line-height:11px; font-size:10px; font-weight:bold; cursor:help; vertical-align:middle; margin-left:4px;' title='{0}'>?</span>"
                 table_html = "<table class='peer-table'><tr>" \
                              "<th>Company (기업명)</th>" \
                              f"<th>Price (현재 주가) {q_mark.format('현재 거래되는 주식의 가격입니다.')}</th>" \
@@ -829,7 +832,6 @@ if symbol and yf_symbol:
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("### 🤖 전문가 핵심 지표 브리핑 (Tier 1)")
             
-            # 💡 [요청 반영] AI 프롬프트 지시문 수정 (개조식 어투 적용 및 엔터 강제)
             if st.button("✨ 퀀트 데이터 기반 AI 분석 보고서 작성", type="primary", width="stretch"):
                 with st.spinner(f"[{company_name}]의 수급 데이터와 4차원 매트릭스를 분석하여 AI 브리핑을 작성 중입니다... 🧠"):
                     try:
