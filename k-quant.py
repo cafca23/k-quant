@@ -103,12 +103,18 @@ def get_naver_finance_fundamentals(symbol, current_price):
         if pd.notna(data['PBR']) and pd.notna(data['PER']) and data['PER'] > 0:
             data['ROE'] = data['PBR'] / data['PER']
             
-        # 💡 [버그 픽스] '외국인소진율(B/A)' 등 텍스트 유연성 확보 (0.00% 오류 해결)
-        foreign_th = soup.find('th', string=re.compile('외국인소진율'))
-        if foreign_th:
-            foreign_val = foreign_th.find_next_sibling('td').text.strip().replace('%', '')
-            data['FOREIGN_RATIO'] = float(foreign_val) / 100.0
-            
+        # 💡 [버그 픽스 완료] HTML 태그에 상관없이 텍스트로 밀어붙여서 완벽 추출
+        for tag in soup.find_all(['th', 'dt']):
+            if '외국인소진율' in tag.text or '외국인비율' in tag.text:
+                sibling = tag.find_next_sibling(['td', 'dd'])
+                if sibling:
+                    try:
+                        raw_val = sibling.text.strip().replace('%', '').replace(',', '')
+                        data['FOREIGN_RATIO'] = float(raw_val) / 100.0
+                        break
+                    except:
+                        pass
+                        
     except: pass
     return data
 
@@ -294,10 +300,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_final_ui2':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_foreign_fix':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_final_ui2'
+        st.session_state.app_version = 'v_k_quant_foreign_fix'
         
     st.divider()
     
@@ -607,8 +613,7 @@ if symbol and yf_symbol:
             </div>
             """, unsafe_allow_html=True)
             
-            # 💡 [요청 반영 1] HTML로 H3 사이즈 강제 고정 및 이모지 삭제
-            st.markdown("<br><h3 style='margin-bottom: 10px;'>4대 리스크 & 수급 지표</h3>", unsafe_allow_html=True)
+            st.markdown("<br><h3 style='margin-bottom: 10px;'>⚔️ 4대 리스크 & 수급 지표</h3>", unsafe_allow_html=True)
             with st.container(border=True):
                 kc1, kc2, kc3, kc4 = st.columns(4)
                 
@@ -672,7 +677,6 @@ if symbol and yf_symbol:
             
             st.markdown("### ⚖️ 동종 업계 비교")
             if not peer_df.empty:
-                # 💡 [요청 반영 3] 완벽한 회색 테두리 원형 물음표 (CSS 커스텀 UI)
                 q_mark = "<span style='display:inline-block; width:14px; height:14px; border:1.5px solid #8b949e; color:#8b949e; border-radius:50%; text-align:center; line-height:11px; font-size:10px; font-weight:bold; cursor:help; vertical-align:middle; margin-left:4px;' title='{0}'>?</span>"
                 table_html = "<table class='peer-table'><tr>" \
                              "<th>Company (기업명)</th>" \
@@ -764,7 +768,7 @@ if symbol and yf_symbol:
                     box_style = "border-left: 4px solid #f85149; background-color: rgba(248, 81, 73, 0.1);"
                 elif recent_price_trend < -2.0 and obv_trend > 0:
                     obv_color = "#3fb950" 
-                    obv_status = "🌟 [기회] 스마트머니 은밀한 매집 (다이버전스)"
+                    obv_status = "🌟 [기회] 스마트머니 은밀 매집 (다이버전스)"
                     obv_desc = "최근 3개월(60일)간 주가는 하락세인데, 매집량(OBV)은 빳빳하게 우상향하고 있습니다. 개미들이 공포에 던지는 물량을 큰손(세력)들이 바닥에서 조용히 쓸어 담고 있는 강력한 매수 대기 시그널입니다."
                     box_style = "border-left: 4px solid #3fb950; background-color: rgba(63, 185, 80, 0.1);"
                 elif recent_price_trend >= -2.0 and obv_trend >= 0:
