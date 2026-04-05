@@ -582,7 +582,7 @@ if symbol and yf_symbol:
                 with c7: st.metric(label="52주 최고가", value=fmt_price(high_1y))
                 with c8: st.metric(label="52주 최저가", value=fmt_price(low_1y))
 
-            fund_status = "📊 주요 기술지표 브리핑"
+            fund_status = "2. 주요 기술지표 브리핑"
             fund_color = "#29b6f6" 
             fund_bg = "41, 182, 246"
             
