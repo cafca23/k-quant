@@ -11,7 +11,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 
-st.set_page_config(page_title="국장 All 퀀트 스캐너", layout="wide", page_icon="📊", initial_sidebar_state="expanded")
+st.set_page_config(page_title="All 퀀트 스캐너", layout="wide", page_icon="📊", initial_sidebar_state="expanded")
 
 # --- Custom Premium CSS ---
 st.markdown("""
@@ -77,7 +77,7 @@ def get_search_options(df):
         options.append(f"[{code}] {name}{alias_str}")
     return options
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False) # 💡 실전 매매를 위해 5분 캐시로 단축
 def get_naver_finance_fundamentals(symbol, current_price):
     url = f"https://finance.naver.com/item/main.naver?code={symbol}"
     data = {'PER': np.nan, 'EPS': np.nan, 'PBR': np.nan, 'BPS': np.nan, 'DIV': np.nan, 'ROE': np.nan, 'FOREIGN_RATIO': np.nan}
@@ -103,7 +103,6 @@ def get_naver_finance_fundamentals(symbol, current_price):
         if pd.notna(data['PBR']) and pd.notna(data['PER']) and data['PER'] > 0:
             data['ROE'] = data['PBR'] / data['PER']
             
-        # 💡 [버그 픽스 완료] HTML 태그에 상관없이 텍스트로 밀어붙여서 완벽 추출
         for tag in soup.find_all(['th', 'dt']):
             if '외국인소진율' in tag.text or '외국인비율' in tag.text:
                 sibling = tag.find_next_sibling(['td', 'dd'])
@@ -148,7 +147,7 @@ def get_dynamic_peers(symbol, ticker_name, sector):
         return ', '.join(matches)
     except: return ""
 
-@st.cache_data(ttl=3600, show_spinner="경쟁사 펀더멘털 데이터를 수집 중입니다...")
+@st.cache_data(ttl=300, show_spinner="경쟁사 펀더멘털 데이터를 수집 중입니다...") # 💡 실전 매매 5분 캐시
 def get_peers_data(target_symbol, peer_str, krx_df):
     peer_list = re.findall(r'\d{6}', peer_str)
     if target_symbol not in peer_list:
@@ -192,7 +191,7 @@ def get_peers_data(target_symbol, peer_str, krx_df):
         except Exception as e: pass
     return pd.DataFrame(data)
 
-@st.cache_data(ttl=3600, show_spinner="주가 차트 및 재무 데이터를 융합 중입니다...")
+@st.cache_data(ttl=300, show_spinner="주가 차트 및 재무 데이터를 융합 중입니다...") # 💡 실전 매매 5분 캐시
 def get_stock_market_data(symbol, yf_symbol):
     stock = yf.Ticker(yf_symbol)
     try: info = stock.info
@@ -300,10 +299,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_foreign_fix':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_real_trade':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_foreign_fix'
+        st.session_state.app_version = 'v_k_quant_real_trade'
         
     st.divider()
     
@@ -349,7 +348,7 @@ def fmt_pct(val):
 # --- 메인 로직 ---
 col_header1, col_header2 = st.columns([3, 1])
 with col_header1:
-    st.markdown("<h1 style='margin-bottom: 0; font-size: 2.0rem;'>📊 국장 All 퀀트 스캐너</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='margin-bottom: 0; font-size: 2.0rem;'>📊 All 퀀트 스캐너</h1>", unsafe_allow_html=True)
     st.markdown("<p style='color: #8b949e; font-size: 1.05rem; margin-top: 5px;'>대한민국 주식 시장(KRX) 맞춤형 4차원 밸류에이션 매트릭스</p>", unsafe_allow_html=True)
 
 if symbol and yf_symbol:
@@ -768,7 +767,7 @@ if symbol and yf_symbol:
                     box_style = "border-left: 4px solid #f85149; background-color: rgba(248, 81, 73, 0.1);"
                 elif recent_price_trend < -2.0 and obv_trend > 0:
                     obv_color = "#3fb950" 
-                    obv_status = "🌟 [기회] 스마트머니 은밀 매집 (다이버전스)"
+                    obv_status = "🌟 [기회] 스마트머니 은밀한 매집 (다이버전스)"
                     obv_desc = "최근 3개월(60일)간 주가는 하락세인데, 매집량(OBV)은 빳빳하게 우상향하고 있습니다. 개미들이 공포에 던지는 물량을 큰손(세력)들이 바닥에서 조용히 쓸어 담고 있는 강력한 매수 대기 시그널입니다."
                     box_style = "border-left: 4px solid #3fb950; background-color: rgba(63, 185, 80, 0.1);"
                 elif recent_price_trend >= -2.0 and obv_trend >= 0:
