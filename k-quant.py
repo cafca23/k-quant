@@ -562,7 +562,7 @@ if symbol and yf_symbol:
             
             st.markdown(badge_html, unsafe_allow_html=True)
             
-            st.markdown("### 📊 주요 기술지표")
+            st.markdown("### 2. 주요 기술지표")
             with st.container(border=True):
                 c1, c2, c3, c4 = st.columns(4)
                 with c1: st.metric(label="현재 주가", value=fmt_price(current_price), delta=f"{drawdown:.2f}% (최고가대비)")
