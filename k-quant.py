@@ -791,7 +791,7 @@ if symbol and yf_symbol:
             if not df_wk.empty:
                 plot_df_wk = df_wk.copy()
 
-                st.markdown("<br><br>### 🔭 트레이딩뷰 주봉 차트", unsafe_allow_html=True)
+                st.markdown("<br><br>6. 주봉차트 타점 발생기", unsafe_allow_html=True)
                 fig_wk = go.Figure()
                 fig_wk.add_trace(go.Candlestick(x=plot_df_wk.index, open=plot_df_wk['Open'], high=plot_df_wk['High'], low=plot_df_wk['Low'], close=plot_df_wk['Close'], increasing_line_color='#ef5350', decreasing_line_color='#42a5f5', name=f"{company_name} 주봉"))
                 fig_wk.add_trace(go.Scatter(x=plot_df_wk.index, y=plot_df_wk['MA10'], mode='lines', line=dict(color='#ab47bc', width=1.5), name='10주선'))
