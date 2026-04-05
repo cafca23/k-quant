@@ -30,7 +30,7 @@ st.markdown("""
     .badge-value { background-color: rgba(3, 105, 161, 0.2); color: #38bdf8; border: 1px solid #0284c7; }
     .badge-cyclical { background-color: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #d97706; }
     .peer-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.95rem; }
-    .peer-table th { background-color: #161b22; color: #8b949e; padding: 12px 8px; text-align: right; border-bottom: 2px solid #30363d; font-weight: 600; cursor: help; }
+    .peer-table th { background-color: #161b22; color: #8b949e; padding: 12px 8px; text-align: right; border-bottom: 2px solid #30363d; font-weight: 600; }
     .peer-table th:first-child { text-align: left; }
     .peer-table td { padding: 10px 8px; text-align: right; border-bottom: 1px solid #21262d; color: #e6edf3; }
     .peer-table td:first-child { text-align: left; font-weight: bold; }
@@ -293,10 +293,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_final_ui':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_ai_prompt_fix':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_final_ui'
+        st.session_state.app_version = 'v_k_quant_ai_prompt_fix'
         
     st.divider()
     
@@ -575,7 +575,7 @@ if symbol and yf_symbol:
                                    help="회사가 주주의 돈(자본)을 굴려서 1년간 얼마를 벌었는지 보여주는 핵심 수익성 지표입니다. (통상 15% 이상이면 우량 기업으로 평가)")
                 with c7: st.metric(label="52주 최고가", value=fmt_price(high_1y))
                 with c8: st.metric(label="52주 최저가", value=fmt_price(low_1y))
-            
+
             fund_status = "📊 주요 기술지표 브리핑"
             fund_color = "#29b6f6" 
             fund_bg = "41, 182, 246"
@@ -606,8 +606,7 @@ if symbol and yf_symbol:
             </div>
             """, unsafe_allow_html=True)
             
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("### ⚔️ 4대 리스크 & 수급 지표")
+            st.markdown("<br>### ⚔️ 4대 리스크 & 수급 지표", unsafe_allow_html=True)
             with st.container(border=True):
                 kc1, kc2, kc3, kc4 = st.columns(4)
                 
@@ -671,14 +670,15 @@ if symbol and yf_symbol:
             
             st.markdown("### ⚖️ 동종 업계 비교")
             if not peer_df.empty:
+                q_mark = "<span style='display:inline-block; width:16px; height:16px; background-color:#29b6f6; color:#161b22; border-radius:50%; text-align:center; line-height:16px; font-size:12px; font-weight:bold; cursor:help;' title='{0}'>?</span>"
                 table_html = "<table class='peer-table'><tr>" \
                              "<th>Company (기업명)</th>" \
-                             "<th title='현재 거래되는 주식의 가격입니다.'>Price (현재 주가) ❓</th>" \
-                             "<th title='주가수익비율. 1주당 수익 대비 주가가 몇 배인지 나타냅니다. 낮을수록 저평가.'>PER (주가/수익) ❓</th>" \
-                             "<th title='주가순자산비율. 1주당 순자산 대비 주가가 몇 배인지 나타냅니다. 1 미만이면 장부상 청산가치보다 저렴하다는 뜻입니다.'>PBR (주가/순자산) ❓</th>" \
-                             "<th title='자기자본이익률. 주주가 투자한 돈으로 1년간 얼마나 이익을 냈는지 나타냅니다. 15% 이상이면 우수.'>ROE (자기자본이익률) ❓</th>" \
-                             "<th title='주당순이익. 1주가 1년 동안 벌어들인 순이익입니다.'>EPS (주당순이익) ❓</th>" \
-                             "<th title='주가매출비율. 1주당 매출액 대비 주가가 몇 배인지 나타냅니다. 이익이 없는 적자 성장주 평가에 유용합니다.'>P/S (주가/매출액) ❓</th>" \
+                             f"<th>Price (현재 주가) {q_mark.format('현재 거래되는 주식의 가격입니다.')}</th>" \
+                             f"<th>PER (주가/수익) {q_mark.format('주가수익비율. 1주당 수익 대비 주가가 몇 배인지 나타냅니다. 낮을수록 저평가.')}</th>" \
+                             f"<th>PBR (주가/순자산) {q_mark.format('주가순자산비율. 1주당 순자산 대비 주가가 몇 배인지 나타냅니다. 1 미만이면 장부상 청산가치보다 저렴하다는 뜻입니다.')}</th>" \
+                             f"<th>ROE (자기자본이익률) {q_mark.format('자기자본이익률. 주주가 투자한 돈으로 1년간 얼마나 이익을 냈는지 나타냅니다. 15% 이상이면 우수.')}</th>" \
+                             f"<th>EPS (주당순이익) {q_mark.format('주당순이익. 1주가 1년 동안 벌어들인 순이익입니다.')}</th>" \
+                             f"<th>P/S (주가/매출액) {q_mark.format('주가매출비율. 1주당 매출액 대비 주가가 몇 배인지 나타냅니다. 이익이 없는 적자 성장주 평가에 유용합니다.')}</th>" \
                              "</tr>"
                 for _, row in peer_df.iterrows():
                     is_main = row['Ticker'] == company_name
@@ -828,6 +828,8 @@ if symbol and yf_symbol:
 
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("### 🤖 전문가 핵심 지표 브리핑 (Tier 1)")
+            
+            # 💡 [요청 반영] AI 프롬프트 지시문 수정 (개조식 어투 적용 및 엔터 강제)
             if st.button("✨ 퀀트 데이터 기반 AI 분석 보고서 작성", type="primary", width="stretch"):
                 with st.spinner(f"[{company_name}]의 수급 데이터와 4차원 매트릭스를 분석하여 AI 브리핑을 작성 중입니다... 🧠"):
                     try:
@@ -836,19 +838,21 @@ if symbol and yf_symbol:
                         ai_median_pe = f"{median_pe:.2f}배" if not peer_df.empty else "데이터 없음"
                         
                         prompt = f"""
-                        당신은 여의도 최고의 수석 퀀트 애널리스트입니다. 한국 주식인 [{company_name}] 분석 데이터를 브리핑해주세요.
+                        당신은 여의도 최고의 수석 퀀트 애널리스트입니다. 한국 주식인 [{company_name}] 분석 데이터를 바탕으로 핵심만 극도로 요약해서 브리핑해주세요.
                         - 터미널 점수: 10점 만점에 {score}점 ({judgment})
                         - 적용된 4차원 매트릭스: {stock_tier} -> 공식: {model_used}
                         - 외국인 소진율: {for_val} / 배당환원율: {div_val}
                         - 해당 기업 Forward P/E: {forward_pe}배 / 동종 업계 경쟁사 중앙값: {ai_median_pe}
                         
                         [작성 규칙]
-                        1. 시작: "대표님, [{company_name}] 4차원 매트릭스 및 수급 종합 분석 보고드립니다."
-                        2. 체급 평가: 이 기업이 {stock_tier}로 분류된 이유와 적용된 {model_used} 방식이 적절한지 브리핑하세요.
-                        3. 수급 및 리스크: 외국인 지분율({for_val})과 주주환원율({div_val})을 바탕으로 국장 특화 리스크(신용, CB 등)를 어떻게 관리해야 할지 서술하세요.
-                        4. 별표(*)와 이모지 사용 금지. 대괄호([ ]) 사용.
-                        5. 마침표(.) 뒤에는 무조건 줄바꿈(엔터).
-                        6. 마지막 줄: "💡 수석 비서의 최종 투자의견:" 이라는 항목 달고 1줄 요약 결론.
+                        1. 시작: "대표님, [{company_name}] 4차원 매트릭스 및 수급 종합 분석 보고드립니다." (이 문장만 예외로 '니다' 사용)
+                        2. 어투: 문장 끝에 "~습니다", "~입니다" 등 경어체 절대 금지. 반드시 "~함", "~됨", "~임", "~음"으로 끝나는 간결한 개조식/보고서체로 작성할 것. (예: 저평가 상태임. 주의가 필요함.)
+                        3. 내용: 글이 너무 방대하지 않게 핵심만 극도로 요약해서 짧게 작성할 것.
+                        4. 체급 평가: 이 기업이 {stock_tier}로 분류된 이유와 적용된 {model_used} 방식이 적절한지 평가.
+                        5. 수급 및 리스크: 외국인 지분율({for_val})과 주주환원율({div_val})을 바탕으로 국장 특화 리스크(신용, CB 등) 관리 방안 서술.
+                        6. 별표(*)와 이모지 사용 금지 (마지막 줄 전구 제외). 대괄호([ ]) 사용.
+                        7. 가독성(매우 중요): 마침표(.)를 찍은 후에는 무조건 줄바꿈(엔터)을 넣어서 문장이 한 칸 아래로 내려가게 할 것. (문단이 아닌 문장 단위로 줄바꿈)
+                        8. 마지막 줄: "💡 수석 비서의 최종 투자의견:" 이라는 항목 달고 1줄 요약 결론.
                         """
                         response = model.generate_content(prompt)
                         st.success("✅ 종합 브리핑 완료!")
