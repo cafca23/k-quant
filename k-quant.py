@@ -77,7 +77,7 @@ def get_search_options(df):
         options.append(f"[{code}] {name}{alias_str}")
     return options
 
-@st.cache_data(ttl=300, show_spinner=False) # 💡 실전 매매를 위해 5분 캐시로 단축
+@st.cache_data(ttl=300, show_spinner=False)
 def get_naver_finance_fundamentals(symbol, current_price):
     url = f"https://finance.naver.com/item/main.naver?code={symbol}"
     data = {'PER': np.nan, 'EPS': np.nan, 'PBR': np.nan, 'BPS': np.nan, 'DIV': np.nan, 'ROE': np.nan, 'FOREIGN_RATIO': np.nan}
@@ -147,7 +147,7 @@ def get_dynamic_peers(symbol, ticker_name, sector):
         return ', '.join(matches)
     except: return ""
 
-@st.cache_data(ttl=300, show_spinner="경쟁사 펀더멘털 데이터를 수집 중입니다...") # 💡 실전 매매 5분 캐시
+@st.cache_data(ttl=300, show_spinner="경쟁사 펀더멘털 데이터를 수집 중입니다...")
 def get_peers_data(target_symbol, peer_str, krx_df):
     peer_list = re.findall(r'\d{6}', peer_str)
     if target_symbol not in peer_list:
@@ -191,7 +191,7 @@ def get_peers_data(target_symbol, peer_str, krx_df):
         except Exception as e: pass
     return pd.DataFrame(data)
 
-@st.cache_data(ttl=300, show_spinner="주가 차트 및 재무 데이터를 융합 중입니다...") # 💡 실전 매매 5분 캐시
+@st.cache_data(ttl=300, show_spinner="주가 차트 및 재무 데이터를 융합 중입니다...")
 def get_stock_market_data(symbol, yf_symbol):
     stock = yf.Ticker(yf_symbol)
     try: info = stock.info
@@ -299,10 +299,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_real_trade':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_chart_tip':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_real_trade'
+        st.session_state.app_version = 'v_k_quant_chart_tip'
         
     st.divider()
     
@@ -450,7 +450,7 @@ if symbol and yf_symbol:
                 else:
                     final_fair_value = rim_value
                     model_used = "한국형 S-RIM (잔여이익모델)"
-                badge_html = f"<div class='badge badge-value'>🏛️ 4차원 엔진: S-RIM 가치 기반 적정주가 산출 완료</div>"
+                badge_html = f"<div class='badge badge-value'>🏛️ 4차 엔진: S-RIM 가치 기반 적정주가 산출 완료</div>"
             else: 
                 if dcf_value == "N/A" or (isinstance(dcf_value, (int, float)) and dcf_value < current_price * 0.5):
                     final_fair_value = relative_target if relative_target != "N/A" else rim_value
@@ -568,7 +568,7 @@ if symbol and yf_symbol:
                 with c1: st.metric(label="현재 주가", value=fmt_price(current_price), delta=f"{drawdown:.2f}% (최고가대비)")
                 with c2: st.metric(label=f"적정 주가 ({model_used})", value=fmt_price(final_fair_value) if final_fair_value != "N/A" else "N/A", 
                                    delta=f"{margin_of_safety:.2f}% (안전마진)" if margin_of_safety != "N/A" else None,
-                                   help="4차원 밸류에이션 매트릭스 로직이 해당 종목의 체급에 맞는 목표가를 동적으로 산출했습니다.")
+                                   help="테크/성장주는 현금흐름할인(DCF) 모델로, 가치/배당주는 그레이엄 모델로 자동 산출됩니다.")
                 with c3: st.metric(label="1년 MDD (최대 낙폭)", value=f"{mdd:.2f}%", delta="Max Drawdown", delta_color="inverse")
                 with c4: st.metric(label="EPS (주당순이익)", value=fmt_price(eps) if pd.notna(eps) else "N/A", 
                                    help="1주당 회사가 벌어들인 순이익을 의미해요. 숫자가 클수록 회사의 기업 가치가 크고, 배당 줄 수 있는 여유가 늘어났다고 볼 수 있어요.")
@@ -581,7 +581,7 @@ if symbol and yf_symbol:
                                    help="회사가 주주의 돈(자본)을 굴려서 1년간 얼마를 벌었는지 보여주는 핵심 수익성 지표입니다. (통상 15% 이상이면 우량 기업으로 평가)")
                 with c7: st.metric(label="52주 최고가", value=fmt_price(high_1y))
                 with c8: st.metric(label="52주 최저가", value=fmt_price(low_1y))
-
+            
             fund_status = "2. 주요 기술지표 브리핑"
             fund_color = "#29b6f6" 
             fund_bg = "41, 182, 246"
@@ -734,7 +734,14 @@ if symbol and yf_symbol:
 
             plot_hist_1y = hist_1y.copy()
 
-            st.markdown("<br>5. 최근 1년 주가 일봉 차트 & 세력 매집(OBV) 지표", unsafe_allow_html=True)
+            st.markdown("<br>### 📉 5. 최근 1년 주가 일봉 차트 & 세력 매집(OBV) 지표", unsafe_allow_html=True)
+            
+            # 💡 [요청 반영] 차트 초기화 가이드 탑재 (일봉 차트 위)
+            with st.expander("🪄 차트 화면이 줌인/줌아웃으로 틀어졌을 때 1초 복구 팁"):
+                st.markdown("""
+                * **마우스 더블클릭 (가장 추천):** 차트 안쪽 빈 공간을 마우스 왼쪽 버튼으로 **'따닥!'** 더블클릭하시면 틀어졌던 캔들이 즉시 처음 화면(Auto-scale)으로 깔끔하게 정렬됩니다.
+                * **홈(Home) 버튼 누르기:** 차트 우측 상단 모서리에 마우스를 올리면 나타나는 반투명 메뉴에서 **집 모양 아이콘(Reset axes)**을 누르셔도 완벽하게 복구됩니다.
+                """)
             
             fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.75, 0.25])
             fig.add_trace(go.Candlestick(x=plot_hist_1y.index, open=plot_hist_1y['Open'], high=plot_hist_1y['High'], low=plot_hist_1y['Low'], close=plot_hist_1y['Close'], increasing_line_color='#ef5350', decreasing_line_color='#42a5f5', name=f"{company_name} 캔들"), row=1, col=1)
@@ -791,7 +798,10 @@ if symbol and yf_symbol:
             if not df_wk.empty:
                 plot_df_wk = df_wk.copy()
 
-                st.markdown("<br><br>6. 주봉차트 타점 발생기", unsafe_allow_html=True)
+                st.markdown("<br><br>### 🔭 6. 주봉차트 타점 발생기", unsafe_allow_html=True)
+                # 💡 주봉 차트 위에도 간단한 캡션 추가
+                st.caption("※ 차트 확대/이동 후 화면이 틀어졌다면, 차트 빈 공간을 **'더블클릭'**하여 1초 만에 원상복구 하세요!")
+                
                 fig_wk = go.Figure()
                 fig_wk.add_trace(go.Candlestick(x=plot_df_wk.index, open=plot_df_wk['Open'], high=plot_df_wk['High'], low=plot_df_wk['Low'], close=plot_df_wk['Close'], increasing_line_color='#ef5350', decreasing_line_color='#42a5f5', name=f"{company_name} 주봉"))
                 fig_wk.add_trace(go.Scatter(x=plot_df_wk.index, y=plot_df_wk['MA10'], mode='lines', line=dict(color='#ab47bc', width=1.5), name='10주선'))
@@ -834,7 +844,6 @@ if symbol and yf_symbol:
 
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("### 🤖 전문가 핵심 지표 브리핑 (Tier 1)")
-            
             if st.button("✨ 퀀트 데이터 기반 AI 분석 보고서 작성", type="primary", width="stretch"):
                 with st.spinner(f"[{company_name}]의 수급 데이터와 4차원 매트릭스를 분석하여 AI 브리핑을 작성 중입니다... 🧠"):
                     try:
