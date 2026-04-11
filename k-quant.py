@@ -349,10 +349,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_ai_format':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_report_style':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_ai_format'
+        st.session_state.app_version = 'v_k_quant_report_style'
         
     st.divider()
     
@@ -658,13 +658,11 @@ if symbol and yf_symbol:
             if final_fair_value != "N/A":
                 is_undervalued = margin_of_safety > 0
                 if is_undervalued:
-                    fund_color = "#3fb950"
-                    fund_bg = "63, 185, 80"
                     fund_desc += f"현재 주가({fmt_price(current_price)})는 계산된 적정 주가({fmt_price(final_fair_value)})보다 **싸게(저평가)** 거래 중임.<br><br>"
+                    fund_color = "#3fb950"; fund_bg = "63, 185, 80"
                 else:
-                    fund_color = "#f85149"
-                    fund_bg = "248, 81, 73"
                     fund_desc += f"현재 주가({fmt_price(current_price)})는 계산된 적정 주가({fmt_price(final_fair_value)})보다 **비싸게(고평가)** 거래 중임.<br><br>"
+                    fund_color = "#f85149"; fund_bg = "248, 81, 73"
             else:
                 fund_desc += f"현재 적자이거나 남는 현금(FCF)이 부족해 정확한 적정 주가를 계산하기 어려움.<br><br>"
                 
@@ -908,17 +906,22 @@ if symbol and yf_symbol:
                 )
                 with st.container(border=True): st.plotly_chart(fig_wk, use_container_width=True)
 
+                # 💡 [V7.2 핵심 패치] 실전 매매 시나리오 가이드 개조식 리포트 형태로 전면 교체
                 st.markdown("""
                 <div style="background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; margin-top: 20px;">
-                    <h3 style="margin-top: 0; color: #e6edf3;">💡 실전 매매 시나리오</h3>
-                    <p style="color: #8b949e; font-size: 0.95rem; margin-bottom: 15px;">대표님께서 차트상 <b>'매수 타점(▲)'</b>을 확인하셨을 때, 상단의 <b>'퀀트 스코어'</b>와 연동하여 아래 2가지 시나리오로 대응하시면 완벽합니다.</p>
-                    <div style="border-left: 4px solid #ef5350; padding-left: 15px; margin-bottom: 15px;">
-                        <h4 style="margin: 0; color: #ef5350;">🔥 시나리오 A (스윙/추세 매매) : 주봉 매수 신호 ➕ 퀀트 스코어 8~10점</h4>
-                        <p style="margin: 5px 0 0 0; color: #c9d1d9; font-size: 0.95rem;"><b>대응:</b> 펀더멘털(저평가/수익성)과 차트 수급이 모두 일치하는 황금 타점입니다. 다만 변동성이 심한 국장 특성상 무조건적인 장기 투자보다는, 추세가 꺾일 때까지(예: 주봉 10주선 이탈) 수익을 극대화하는 <b>추세 매매(Swing)</b> 전략이 가장 유리합니다.</p>
+                    <h3 style="margin-top: 0; color: #e6edf3; font-size: 1.5rem;">💡 실전 매매 시나리오 가이드</h3>
+                    <p style="color: #8b949e; font-size: 1.05rem; margin-bottom: 20px; line-height: 1.6;">차트에서 <b>'매수 타점(▲)'</b> 발생 시, 위쪽의 <b>'TOTAL SCORE (퀀트 스코어)'</b>에 따라 아래 2가지 시나리오로 기계적 대응을 권장함.</p>
+                    
+                    <div style="border-left: 5px solid #ef5350; background-color: rgba(239, 83, 80, 0.05); padding: 15px 20px; margin-bottom: 15px; border-radius: 0 8px 8px 0;">
+                        <h4 style="margin: 0 0 10px 0; color: #ef5350; font-size: 1.2rem;">🔥 시나리오 A (우량주 추세 매매) : 주봉 매수 신호 ➕ 스코어 8~10점</h4>
+                        <p style="margin: 0 0 5px 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 상태:</b> 기업의 가치(수익성/저평가)와 차트의 돈 흐름이 완벽히 일치하는 최고의 매수 타이밍임.</p>
+                        <p style="margin: 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 대응:</b> 비중을 실어서 매수하되, 변동성이 큰 한국 시장 특성상 무작정 장기투자하기보다 오름세가 꺾일 때(예: 주봉 10주선 이탈 시) 팔아서 수익을 챙기는 <b>'추세 매매'</b> 전략이 가장 안전함.</p>
                     </div>
-                    <div style="border-left: 4px solid #29b6f6; padding-left: 15px;">
-                        <h4 style="margin: 0; color: #29b6f6;">🤔 시나리오 B (단기 테마/수급 매매) : 주봉 매수 신호 ➕ 퀀트 스코어 4점 이하</h4>
-                        <p style="margin: 5px 0 0 0; color: #c9d1d9; font-size: 0.95rem;"><b>대응:</b> 펀더멘털은 부실하거나 고평가 상태지만, 차트에 세력의 수급이 강력하게 들어온 상태입니다. 전형적인 테마주/급등주 패턴이므로, 반드시 <b>ATR 스탑(손절선)</b>을 짧고 기계적으로 잡고 철저히 단기 트레이딩으로만 치고 빠지셔야 합니다.</p>
+                    
+                    <div style="border-left: 5px solid #29b6f6; background-color: rgba(41, 182, 246, 0.05); padding: 15px 20px; border-radius: 0 8px 8px 0;">
+                        <h4 style="margin: 0 0 10px 0; color: #29b6f6; font-size: 1.2rem;">🤔 시나리오 B (단기 수급/테마 매매) : 주봉 매수 신호 ➕ 스코어 4점 이하</h4>
+                        <p style="margin: 0 0 5px 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 상태:</b> 기업 가치는 부실하거나 비싸지만, 세력의 돈이 단기적으로 강하게 들어온 전형적인 테마/급등주 패턴임.</p>
+                        <p style="margin: 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 대응:</b> 반드시 차트의 <b>'ATR 스탑(점선 방어선)'</b>을 칼같이 지키고, 철저하게 짧게 먹고 빠지는 단기 매매로만 접근해야 함.</p>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -932,7 +935,6 @@ if symbol and yf_symbol:
                         model = genai.GenerativeModel('gemini-2.5-flash', generation_config={"temperature": 0.7, "max_output_tokens": 8000})
                         ai_median_pe = f"{median_pe:.2f}배" if not peer_df.empty else "데이터 없음"
                         
-                        # 💡 [V7.2 핵심 패치] AI 프롬프트를 쉬운 일상어 + 엔터 두 번(\n\n)으로 완벽 통제
                         prompt = f"""
                         당신은 여의도 최고의 수석 퀀트 애널리스트입니다. 한국 주식인 [{company_name}] 분석 데이터를 바탕으로 핵심만 극도로 요약해서 브리핑해주세요.
                         - 터미널 점수: 10점 만점에 {score}점 ({judgment})
@@ -946,16 +948,17 @@ if symbol and yf_symbol:
                         3. 내용: 어려운 전문 금융 용어는 최대한 빼고, 주식 초보자도 아주 편하게 읽고 이해할 수 있도록 쉽게 풀어서 설명할 것.
                         4. 체급 평가: 이 기업이 {stock_tier}로 분류된 이유와 평가 방식이 현재 주가 대비 매력적인지 평가할 것.
                         5. 스마트머니 수급: 외국인 소진율과 더불어, 최근 5일간 기관과 외국인이 매집 중(쌍끌이)인지 탈출 중인지 명확하고 쉽게 브리핑할 것.
-                        6. 별표(*)와 이모지 사용 금지 (마지막 줄 전구 제외). 대괄호([ ]) 사용.
-                        7. 가독성(매우 중요): 마침표(.)를 찍을 때마다 반드시 줄바꿈(엔터)을 두 번 넣어서, 모든 문장이 한 줄씩 뚝딱뚝딱 끊어져서 띄워지게 만들 것. 
+                        6. 별표(*)와 이모지 사용 금지 (단, 각 줄 시작에 불릿 포인트 '-' 사용 가능).
+                        7. 가독성(매우 중요): 절대 단락으로 뭉쳐서 쓰지 말고, 마침표(.)가 끝날 때마다 무조건 줄바꿈(엔터)을 하여 모든 문장이 한 줄씩 분리되어 읽기 편하게 만들 것.
                         8. 마지막 줄: "💡 수석 비서의 최종 투자의견:" 이라는 항목 달고 1줄 요약 결론.
                         """
                         response = model.generate_content(prompt)
                         st.success("✅ 종합 브리핑 완료!")
                         with st.container(border=True):
-                            # AI가 말을 안 들을 때를 대비해 파이썬에서 강제로 마침표 뒤에 \n\n을 박아버림
+                            # 💡 [V7.2 핵심 패치] AI가 명령을 무시해도 파이썬에서 강제로 마침표 뒤에 엔터 두 번을 때려박음
                             clean_text = re.sub(r'[\U00010000-\U0010ffff]', '', response.text.replace("*", ""))
-                            clean_text = clean_text.replace(". ", ".\n\n").replace(".\n", ".\n\n")
+                            clean_text = re.sub(r'([가-힣])\.\s*', r'\1.\n\n', clean_text)
+                            clean_text = re.sub(r'\n{3,}', '\n\n', clean_text).strip()
                             st.markdown(clean_text)
                     except Exception as e: st.error(f"🚨 AI 오류: {e}")
 
