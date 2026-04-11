@@ -349,10 +349,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_ai_fix':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_ai_format':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_ai_fix'
+        st.session_state.app_version = 'v_k_quant_ai_format'
         
     st.divider()
     
@@ -653,29 +653,30 @@ if symbol and yf_symbol:
             fund_color = "#29b6f6" 
             fund_bg = "41, 182, 246"
             
+            # 💡 [V7.2 핵심 패치] 주요 기술지표 브리핑 개조식 번역 및 줄바꿈 적용
             fund_desc = ""
             if final_fair_value != "N/A":
                 is_undervalued = margin_of_safety > 0
                 if is_undervalued:
                     fund_color = "#3fb950"
                     fund_bg = "63, 185, 80"
-                    fund_desc += f"현재 주가({fmt_price(current_price)})는 {model_used}로 산출된 적정 주가({fmt_price(final_fair_value)}) 대비 **싸게(저평가)** 거래되고 있습니다. "
+                    fund_desc += f"현재 주가({fmt_price(current_price)})는 계산된 적정 주가({fmt_price(final_fair_value)})보다 **싸게(저평가)** 거래 중임.<br><br>"
                 else:
                     fund_color = "#f85149"
                     fund_bg = "248, 81, 73"
-                    fund_desc += f"현재 주가({fmt_price(current_price)})는 {model_used}로 산출된 적정 주가({fmt_price(final_fair_value)}) 대비 **비싸게(고평가)** 거래되고 있습니다. "
+                    fund_desc += f"현재 주가({fmt_price(current_price)})는 계산된 적정 주가({fmt_price(final_fair_value)})보다 **비싸게(고평가)** 거래 중임.<br><br>"
             else:
-                fund_desc += f"현재 적자 혹은 잉여현금흐름(FCF) 부족으로 인해 명확한 적정 주가를 산출하기 어렵습니다. (EV/EBITDA 등 보조 지표를 확인하세요) "
+                fund_desc += f"현재 적자이거나 남는 현금(FCF)이 부족해 정확한 적정 주가를 계산하기 어려움.<br><br>"
                 
             if pd.notna(roe):
-                if roe > 0.15: fund_desc += "ROE가 15%를 초과하여 자본 배분 수익성이 매우 우수하며, "
-                else: fund_desc += "ROE가 15% 미만으로 자본 수익성은 평범하거나 다소 아쉬운 수준입니다. "
-            fund_desc += f"최근 1년 동안 최고가 대비 최대 {mdd:.1f}% 하락한 변동성이 있었습니다."
+                if roe > 0.15: fund_desc += "가진 돈(자본) 대비 수익 내는 능력(ROE)이 15%를 넘어 매우 우수함.<br><br>"
+                else: fund_desc += "가진 돈(자본) 대비 수익 내는 능력(ROE)이 15% 아래라 평범하거나 다소 아쉬움.<br><br>"
+            fund_desc += f"최근 1년 동안 가장 비쌌을 때보다 최대 {mdd:.1f}% 떨어진 적이 있음."
             
             st.markdown(f"""
             <div style="padding: 15px; border-radius: 5px; margin-top: 10px; margin-bottom: 20px; border-left: 4px solid {fund_color}; background-color: rgba({fund_bg}, 0.1);">
                 <h4 style="margin-top: 0; color: {fund_color};">{fund_status}</h4>
-                <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9;">{fund_desc}</p>
+                <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{fund_desc}</p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -723,32 +724,33 @@ if symbol and yf_symbol:
             risk_color = "#29b6f6"
             risk_bg = "41, 182, 246"
             
+            # 💡 [V7.2 핵심 패치] 리스크 브리핑 개조식 번역 및 줄바꿈 적용
             risk_desc = ""
             if frgn_5d > 0 and inst_5d > 0:
-                risk_desc += "최근 5일간 외국인과 기관이 **동반 매수(쌍끌이)**하며 강력한 수급 모멘텀을 형성하고 있습니다. "
+                risk_desc += "최근 5일간 외국인과 기관이 **함께 사들이며(쌍끌이 매수)** 돈이 강하게 몰리는 중임.<br><br>"
             elif frgn_5d < 0 and inst_5d < 0:
-                risk_desc += "최근 5일간 외국인과 기관이 **동반 매도(쌍끌이 이탈)** 중이므로 하락 변동성에 극도로 주의해야 합니다. "
+                risk_desc += "최근 5일간 외국인과 기관이 **함께 팔고 있어(쌍끌이 매도)** 주가 하락 변동성에 극도로 주의해야 함.<br><br>"
             else:
-                risk_desc += "외국인과 기관의 수급이 엇갈리며 치열한 손바뀜이 일어나고 있습니다. "
+                risk_desc += "외국인과 기관의 사고파는 방향이 엇갈리며 치열한 눈치싸움 중임.<br><br>"
                 
             if pd.notna(payout_ratio) and payout_ratio >= 0.04:
-                risk_desc += f"여기에 주주환원율({payout_ratio*100:.1f}%)도 우수하여 하방 방어력이 단단합니다. "
+                risk_desc += f"주주에게 이익을 돌려주는 비율({payout_ratio*100:.1f}%)도 우수해 주가 방어력이 단단함.<br><br>"
             else:
-                risk_desc += "다만 주주환원이 다소 미흡한 점은 아쉽습니다. "
+                risk_desc += "주주에게 이익을 돌려주는 비율은 다소 부족함.<br><br>"
                 
             if market_type == "KOSPI" and current_price > 50000:
-                risk_desc += "우량 대형주로 분류되어 CB/BW 오버행 및 반대매매 리스크로부터 비교적 안전합니다."
+                risk_desc += "우량 대형주로 분류되어 갑작스러운 주식 변환 매물(CB/BW)이나 빚투 강제 청산(반대매매) 위험은 적음."
                 risk_color = "#3fb950"
                 risk_bg = "63, 185, 80"
             else:
-                risk_desc += "중소형주 특성상 잠재적인 CB/BW 매물 폭탄(오버행)과 빚투 개미털기 리스크를 항상 염두에 두어야 합니다."
+                risk_desc += "중소형주 특성상 갑작스러운 주식 변환 매물(CB/BW) 폭탄과 빚투 개미털기 위험을 항상 주의해야 함."
                 risk_color = "#f85149"
                 risk_bg = "248, 81, 73"
 
             st.markdown(f"""
             <div style="padding: 15px; border-radius: 5px; margin-top: 10px; margin-bottom: 20px; border-left: 4px solid {risk_color}; background-color: rgba({risk_bg}, 0.1);">
                 <h4 style="margin-top: 0; color: {risk_color};">{risk_status}</h4>
-                <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9;">{risk_desc}</p>
+                <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{risk_desc}</p>
             </div>
             """, unsafe_allow_html=True)
             
@@ -846,31 +848,32 @@ if symbol and yf_symbol:
                 obv_end = plot_hist_1y['OBV'].iloc[-1]
                 obv_trend = obv_end - obv_start
                 
+                # 💡 [V7.2 핵심 패치] OBV 지표 브리핑 개조식 번역 및 줄바꿈 적용
                 if recent_price_trend > 2.0 and obv_trend < 0:
                     obv_color = "#f85149" 
                     obv_status = "🚨 [경고] 가짜 반등 및 세력 물량 떠넘기기 (분산)"
-                    obv_desc = "최근 3개월(60일)간 주가는 올랐거나 버티고 있지만, 매집량(OBV)은 오히려 하락 중입니다. 이는 전형적인 하락 다이버전스로, 세력들이 상승을 틈타 개미들에게 비싸게 물량을 떠넘기고 탈출하고 있을 확률이 높은 매우 위험한 자리입니다."
+                    obv_desc = "최근 3개월(60일)간 주가는 올랐거나 버티고 있지만, 실제 매집량(OBV)은 오히려 떨어지는 중임.<br><br>세력들이 주가를 띄워놓고 개인들에게 비싸게 넘기며 탈출 중일 확률이 높은 아주 위험한 자리임."
                     box_style = "border-left: 4px solid #f85149; background-color: rgba(248, 81, 73, 0.1);"
                 elif recent_price_trend < -2.0 and obv_trend > 0:
                     obv_color = "#3fb950" 
                     obv_status = "🌟 [기회] 스마트머니 은밀한 매집 (다이버전스)"
-                    obv_desc = "최근 3개월(60일)간 주가는 하락세인데, 매집량(OBV)은 빳빳하게 우상향하고 있습니다. 개미들이 공포에 던지는 물량을 큰손(세력)들이 바닥에서 조용히 쓸어 담고 있는 강력한 매수 대기 시그널입니다."
+                    obv_desc = "최근 3개월(60일)간 주가는 떨어지는데, 실제 매집량(OBV)은 꾸준히 오르는 중임.<br><br>개인들이 겁먹고 던지는 물량을 큰손(세력)들이 바닥에서 조용히 쓸어 담고 있는 강력한 매수 신호임."
                     box_style = "border-left: 4px solid #3fb950; background-color: rgba(63, 185, 80, 0.1);"
                 elif recent_price_trend >= -2.0 and obv_trend >= 0:
                     obv_color = "#29b6f6" 
                     obv_status = "📈 [안정] 건전한 우상향 추세 (추세 확증)"
-                    obv_desc = "주가와 매집량(OBV)이 함께 안정적으로 우상향하고 있습니다. 든든한 거래량이 동반된 건강한 상승장이며, 세력들도 팔지 않고 계속 물량을 쥐고 끌고 가는 중입니다."
+                    obv_desc = "주가와 매집량(OBV)이 함께 안정적으로 오르는 중임.<br><br>거래량이 든든하게 받쳐주는 건강한 상승장임.<br><br>큰손(세력)들도 주식을 팔지 않고 계속 쥐고 가는 중임."
                     box_style = "border-left: 4px solid #29b6f6; background-color: rgba(41, 182, 246, 0.1);"
                 else:
                     obv_color = "#8b949e" 
                     obv_status = "📉 [위험] 강력한 하락세 및 세력 이탈 (투매)"
-                    obv_desc = "주가와 매집량(OBV)이 모두 밑으로 곤두박질치고 있습니다. 세력과 기관들이 앞다투어 물량을 던지고 3개월째 탈출하는 중이므로, 떨어지는 칼날을 맨손으로 잡으면 절대 안 되는 차트입니다."
+                    obv_desc = "주가와 매집량(OBV)이 모두 밑으로 곤두박질치는 중임.<br><br>세력과 기관들이 앞다투어 주식을 던지며 탈출 중임.<br><br>떨어지는 칼날을 맨손으로 잡으면 절대 안 되는 위험한 차트임."
                     box_style = "border-left: 4px solid #8b949e; background-color: rgba(139, 148, 158, 0.1);"
                     
                 st.markdown(f"""
                 <div style="padding: 15px; border-radius: 5px; margin-top: -10px; margin-bottom: 20px; {box_style}">
                     <h4 style="margin-top: 0; color: {obv_color};">{obv_status}</h4>
-                    <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9;">{obv_desc}</p>
+                    <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{obv_desc}</p>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -929,6 +932,7 @@ if symbol and yf_symbol:
                         model = genai.GenerativeModel('gemini-2.5-flash', generation_config={"temperature": 0.7, "max_output_tokens": 8000})
                         ai_median_pe = f"{median_pe:.2f}배" if not peer_df.empty else "데이터 없음"
                         
+                        # 💡 [V7.2 핵심 패치] AI 프롬프트를 쉬운 일상어 + 엔터 두 번(\n\n)으로 완벽 통제
                         prompt = f"""
                         당신은 여의도 최고의 수석 퀀트 애널리스트입니다. 한국 주식인 [{company_name}] 분석 데이터를 바탕으로 핵심만 극도로 요약해서 브리핑해주세요.
                         - 터미널 점수: 10점 만점에 {score}점 ({judgment})
@@ -938,18 +942,20 @@ if symbol and yf_symbol:
                         
                         [작성 규칙]
                         1. 시작: "대표님, [{company_name}] 4차원 매트릭스 및 수급 종합 분석 보고드립니다." (이 문장만 예외로 '니다' 사용)
-                        2. 어투: 문장 끝에 "~습니다", "~입니다" 등 경어체 절대 금지. 반드시 "~함", "~됨", "~임", "~음"으로 끝나는 간결한 개조식/보고서체로 작성할 것. (예: 저평가 상태임. 주의가 필요함.)
-                        3. 내용: 글이 너무 방대하지 않게 핵심만 극도로 요약해서 짧게 작성할 것.
-                        4. 체급 평가: 이 기업이 {stock_tier}로 분류된 이유와 적용된 {model_used} 방식이 적절한지 평가.
-                        5. 스마트머니 수급: 외국인 소진율과 더불어, 최근 5일간 기관과 외국인이 매집 중(쌍끌이)인지 이탈 중인지 명확히 브리핑.
+                        2. 어투: 문장 끝은 반드시 "~음", "~함", "~됨", "확인." 등 간결한 보고서 형태로 작성할 것. (예: 저평가 상태임. 주의가 필요함.)
+                        3. 내용: 어려운 전문 금융 용어는 최대한 빼고, 주식 초보자도 아주 편하게 읽고 이해할 수 있도록 쉽게 풀어서 설명할 것.
+                        4. 체급 평가: 이 기업이 {stock_tier}로 분류된 이유와 평가 방식이 현재 주가 대비 매력적인지 평가할 것.
+                        5. 스마트머니 수급: 외국인 소진율과 더불어, 최근 5일간 기관과 외국인이 매집 중(쌍끌이)인지 탈출 중인지 명확하고 쉽게 브리핑할 것.
                         6. 별표(*)와 이모지 사용 금지 (마지막 줄 전구 제외). 대괄호([ ]) 사용.
-                        7. 가독성(매우 중요): 마침표(.)를 찍은 후에는 무조건 줄바꿈(엔터)을 넣어서 문장이 한 칸 아래로 내려가게 할 것. (문단이 아닌 문장 단위로 줄바꿈)
+                        7. 가독성(매우 중요): 마침표(.)를 찍을 때마다 반드시 줄바꿈(엔터)을 두 번 넣어서, 모든 문장이 한 줄씩 뚝딱뚝딱 끊어져서 띄워지게 만들 것. 
                         8. 마지막 줄: "💡 수석 비서의 최종 투자의견:" 이라는 항목 달고 1줄 요약 결론.
                         """
                         response = model.generate_content(prompt)
                         st.success("✅ 종합 브리핑 완료!")
                         with st.container(border=True):
-                            clean_text = re.sub(r'[\U00010000-\U0010ffff]', '', response.text.replace("*", "")).replace(". ", ".\n\n")
+                            # AI가 말을 안 들을 때를 대비해 파이썬에서 강제로 마침표 뒤에 \n\n을 박아버림
+                            clean_text = re.sub(r'[\U00010000-\U0010ffff]', '', response.text.replace("*", ""))
+                            clean_text = clean_text.replace(". ", ".\n\n").replace(".\n", ".\n\n")
                             st.markdown(clean_text)
                     except Exception as e: st.error(f"🚨 AI 오류: {e}")
 
