@@ -310,10 +310,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_final':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_resize':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_final'
+        st.session_state.app_version = 'v_k_quant_resize'
         
     st.divider()
     
@@ -554,7 +554,6 @@ if symbol and yf_symbol:
             elif score >= 5: judgment = "🟢 분할 매수 / 관망 (Accumulate/Hold)"; banner_class = "hold-banner"; prog_color = "#166534"
             else: judgment = "🔴 매도 / 주의 (Sell/Warning)"; banner_class = "sell-banner"; prog_color = "#b91c1c"
             
-            # 💡 2분할 배너 레이아웃 및 1줄 기업개요 적용
             st.markdown(f"""
 <div class="banner {banner_class}">
     <div class="banner-left">
@@ -568,23 +567,24 @@ if symbol and yf_symbol:
 </div>
 """, unsafe_allow_html=True)
             
-            items_html = "".join([f'''<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; margin-bottom: 8px; background-color: #161b22; border-radius: 6px; border-left: 4px solid {'#3fb950' if item["status"] == 'pass' else ('#f85149' if item["status"] == 'fail' else '#d29922')}; border: 1px solid #30363d;">
-    <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-        <span style="font-size: 1.1rem;">{'✅' if item["status"] == 'pass' else ('❌' if item["status"] == 'fail' else '💡')}</span>
-        <span style="color: {'#3fb950' if item["status"] == 'pass' else ('#f85149' if item["status"] == 'fail' else '#d29922')}; font-weight: bold; font-size: 0.8rem; min-width: 50px; text-align: center;">{item["category"]}</span>
-        <span style="color: #c9d1d9; font-size: 0.95rem;">{item["desc"]}</span>
+            # 💡 [V6.4 핵심 패치] 폰트 사이즈 +2pt(0.2rem 단위) 증가 및 완벽한 높이 매칭(stretch)
+            items_html = "".join([f'''<div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 18px; margin-bottom: 10px; background-color: #161b22; border-radius: 6px; border-left: 4px solid {'#3fb950' if item["status"] == 'pass' else ('#f85149' if item["status"] == 'fail' else '#d29922')}; border: 1px solid #30363d;">
+    <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+        <span style="font-size: 1.3rem;">{'✅' if item["status"] == 'pass' else ('❌' if item["status"] == 'fail' else '💡')}</span>
+        <span style="color: {'#3fb950' if item["status"] == 'pass' else ('#f85149' if item["status"] == 'fail' else '#d29922')}; font-weight: bold; font-size: 1.0rem; min-width: 60px; text-align: center;">{item["category"]}</span>
+        <span style="color: #c9d1d9; font-size: 1.15rem;">{item["desc"]}</span>
     </div>
-    <div style="font-weight: bold; color: {'#3fb950' if item["status"] == 'pass' else ('#f85149' if item["status"] == 'fail' else '#d29922')}; font-size: 1.05rem;">{item["score"]}점</div>
+    <div style="font-weight: bold; color: {'#3fb950' if item["status"] == 'pass' else ('#f85149' if item["status"] == 'fail' else '#d29922')}; font-size: 1.25rem;">{item["score"]}점</div>
 </div>''' for item in checklist])
             
             st.markdown(f"""
-<div style="display: flex; gap: 20px; align-items: stretch; margin-bottom: 20px; flex-wrap: wrap;">
-    <div class='checklist-box' style='flex: 1 1 300px; text-align:center; display: flex; flex-direction: column; justify-content: center;'>
+<div style="display: flex; gap: 20px; align-items: stretch; margin-bottom: 20px;">
+    <div class='checklist-box' style='flex: 1; text-align:center; display: flex; flex-direction: column; justify-content: center; margin: 0;'>
         <h3 style='margin:0 0 10px 0; color:#8b949e;'>TOTAL SCORE</h3>
-        <h1 style='font-size: 5rem; margin:10px 0; color:{prog_color};'>{score}<span style='font-size: 2.5rem; color:#8b949e;'> / 10</span></h1>
+        <h1 style='font-size: 5.5rem; margin:10px 0; color:{prog_color};'>{score}<span style='font-size: 2.5rem; color:#8b949e;'> / 10</span></h1>
     </div>
-    <div class='checklist-box' style='flex: 1.8 1 500px; justify-content: flex-start;'>
-        <h3 style='margin:0 0 15px 0; color:#8b949e;'>평가 내용</h3>{items_html}
+    <div class='checklist-box' style='flex: 1.8; justify-content: center; margin: 0;'>
+        <h3 style='margin:0 0 15px 0; color:#8b949e; font-size: 1.4rem;'>평가 내용</h3>{items_html}
     </div>
 </div>
 """, unsafe_allow_html=True)
