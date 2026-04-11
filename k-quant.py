@@ -79,10 +79,11 @@ def get_search_options(df):
         options.append(f"[{code}] {name}{alias_str}")
     return options
 
+# 💡 [핵심 엔진] 네이버 금융에서 펀더멘털 및 "기업개요" 스크래핑
 @st.cache_data(ttl=300, show_spinner=False)
 def get_naver_finance_fundamentals(symbol, current_price):
     url = f"https://finance.naver.com/item/main.naver?code={symbol}"
-    data = {'PER': np.nan, 'EPS': np.nan, 'PBR': np.nan, 'BPS': np.nan, 'DIV': np.nan, 'ROE': np.nan, 'FOREIGN_RATIO': np.nan}
+    data = {'PER': np.nan, 'EPS': np.nan, 'PBR': np.nan, 'BPS': np.nan, 'DIV': np.nan, 'ROE': np.nan, 'FOREIGN_RATIO': np.nan, 'SUMMARY': ''}
     try:
         r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
         soup = BeautifulSoup(r.text, 'html.parser')
@@ -115,7 +116,12 @@ def get_naver_finance_fundamentals(symbol, current_price):
                         break
                     except:
                         pass
-                        
+        
+        # 💡 네이버 증권 기업개요(summary_info) 스크래핑
+        summary_p = soup.select_one('.summary_info p')
+        if summary_p:
+            data['SUMMARY'] = summary_p.get_text(separator=' ', strip=True)
+            
     except: pass
     return data
 
@@ -143,7 +149,7 @@ def get_dynamic_peers(symbol, ticker_name, sector):
     try:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
         model = genai.GenerativeModel('gemini-2.5-flash', generation_config={"temperature": 0.1})
-        prompt = f"한국 주식 애널리스트입니다. '{ticker_name}'({sector} 산업)와 가장 밀접한 한국(KRX) 상장사 경쟁사 3곳의 6자리 종목코문을 쉼표로 구분해서 출력하세요. (예: 000660, 005380, 035420). 다른 텍스트 없이 오직 숫자 6자리 3개만 쉼표로 연결하세요."
+        prompt = f"한국 주식 애널리스트입니다. '{ticker_name}'({sector} 산업)와 가장 밀접한 한국(KRX) 상장사 경쟁사 3곳의 6자리 종목코드를 쉼표로 구분해서 출력하세요. (예: 000660, 005380, 035420). 다른 텍스트 없이 오직 숫자 6자리 3개만 쉼표로 연결하세요."
         res = model.generate_content(prompt)
         matches = re.findall(r'\d{6}', res.text)
         return ', '.join(matches)
@@ -258,6 +264,9 @@ with st.sidebar:
         else:
             market_type = "KOSPI"
             company_name = symbol
+            
+        # 💡 [사이드바 타깃 표시 패치] 회사 풀네임 출력
+        st.success(f"🎯 현재 분석 타깃: **{company_name}**")
         
         if symbol:
             yf_symbol = f"{symbol}.KS" if market_type in ["KOSPI", "KOSPI200"] else f"{symbol}.KQ"
@@ -301,10 +310,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_split_banner':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_final':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_split_banner'
+        st.session_state.app_version = 'v_k_quant_final'
         
     st.divider()
     
@@ -375,6 +384,17 @@ if symbol and yf_symbol:
             rsi_val = hist['RSI'].iloc[-1]
             
             naver_data = get_naver_finance_fundamentals(symbol, current_price)
+            
+            # 💡 [핵심] 배너용 1줄 회사 기업개요 자동 추출
+            company_summary = naver_data.get('SUMMARY', '')
+            if company_summary:
+                if "다." in company_summary:
+                    company_summary = company_summary.split("다.")[0] + "다."
+                else:
+                    company_summary = company_summary.split(".")[0] + "."
+            else:
+                company_summary = "기업 요약 정보를 불러올 수 없습니다."
+            
             eps = naver_data['EPS'] if pd.notna(naver_data['EPS']) else info.get('trailingEps', np.nan)
             pbr = naver_data['PBR'] if pd.notna(naver_data['PBR']) else info.get('priceToBook', np.nan)
             bps = naver_data['BPS'] if pd.notna(naver_data['BPS']) else (current_price / pbr if pd.notna(pbr) and isinstance(pbr, (int,float)) and pbr > 0 else np.nan)
@@ -534,12 +554,12 @@ if symbol and yf_symbol:
             elif score >= 5: judgment = "🟢 분할 매수 / 관망 (Accumulate/Hold)"; banner_class = "hold-banner"; prog_color = "#166534"
             else: judgment = "🔴 매도 / 주의 (Sell/Warning)"; banner_class = "sell-banner"; prog_color = "#b91c1c"
             
-            # 💡 [V6.1 핵심 패치] 국장 전용 2분할(좌/우) 배너 레이아웃
+            # 💡 2분할 배너 레이아웃 및 1줄 기업개요 적용
             st.markdown(f"""
 <div class="banner {banner_class}">
     <div class="banner-left">
         <h2 style="margin-bottom: 5px; font-size: 2.2rem;">{company_name} <span style="font-size:1.2rem; color:#8b949e; font-weight:normal;">한국 · {symbol} · {market_type}</span></h2>
-        <p style="font-size: 1.05rem; color: #c9d1d9; margin-top: 10px; margin-bottom: 0; font-weight: 400; background-color: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px; display: inline-block;">💡 {stock_tier} (적용 로직: {model_used})</p>
+        <p style="font-size: 1.05rem; color: #c9d1d9; margin-top: 10px; margin-bottom: 0; font-weight: 400; background-color: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px; display: inline-block;">💡 {company_summary}</p>
     </div>
     <div class="banner-right">
         <p style="margin-bottom: 5px; color: rgba(255,255,255,0.8); font-size: 1rem;">퀀트 시스템 최종 평가</p>
