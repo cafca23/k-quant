@@ -678,7 +678,7 @@ if symbol and yf_symbol:
 </div>
 """, unsafe_allow_html=True)
             
-            st.markdown("<br><h3 style='margin-bottom: 10px;'>🕵️‍♂️ 3. 스마트머니 (외국인/기관) 수급 동향</h3>", unsafe_allow_html=True)
+            st.markdown("<br><h3 style='margin-bottom: 10px;'>🕵️‍♂️ 3. 외국인/기관 수급 동향</h3>", unsafe_allow_html=True)
             
             frgn_hold_str = investor_trend['frgn_hold'] if investor_trend['frgn_hold'] != "N/A" else f"{foreign_ratio * 100:.2f}%"
             frgn_5d = investor_trend['frgn_5d']
@@ -718,7 +718,7 @@ if symbol and yf_symbol:
                 
                 st.caption("※ CB/BW 오버행 및 신용잔고 수치는 종목의 시총과 소속 시장(코스닥)을 기반으로 한 1차 AI 위험 판독 결과입니다. 정확한 수치는 HTS 수급 탭을 병행 확인하십시오.")
             
-            risk_status = "스마트머니 & 리스크 종합 브리핑"
+            risk_status = "리스크 종합 브리핑"
             risk_color = "#29b6f6"
             risk_bg = "41, 182, 246"
             
