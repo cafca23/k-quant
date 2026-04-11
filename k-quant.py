@@ -349,10 +349,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_report_style':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_flush_left':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_report_style'
+        st.session_state.app_version = 'v_k_quant_flush_left'
         
     st.divider()
     
@@ -593,6 +593,7 @@ if symbol and yf_symbol:
             elif score >= 5: judgment = "🟢 분할 매수 / 관망 (Accumulate/Hold)"; banner_class = "hold-banner"; prog_color = "#166534"
             else: judgment = "🔴 매도 / 주의 (Sell/Warning)"; banner_class = "sell-banner"; prog_color = "#b91c1c"
             
+# 💡 [V7.4 핵심 패치] st.markdown 내의 HTML 코드를 왼쪽 벽(Flush Left)에 완벽 밀착
             st.markdown(f"""
 <div class="banner {banner_class}">
     <div class="banner-left">
@@ -653,7 +654,6 @@ if symbol and yf_symbol:
             fund_color = "#29b6f6" 
             fund_bg = "41, 182, 246"
             
-            # 💡 [V7.2 핵심 패치] 주요 기술지표 브리핑 개조식 번역 및 줄바꿈 적용
             fund_desc = ""
             if final_fair_value != "N/A":
                 is_undervalued = margin_of_safety > 0
@@ -672,11 +672,11 @@ if symbol and yf_symbol:
             fund_desc += f"최근 1년 동안 가장 비쌌을 때보다 최대 {mdd:.1f}% 떨어진 적이 있음."
             
             st.markdown(f"""
-            <div style="padding: 15px; border-radius: 5px; margin-top: 10px; margin-bottom: 20px; border-left: 4px solid {fund_color}; background-color: rgba({fund_bg}, 0.1);">
-                <h4 style="margin-top: 0; color: {fund_color};">{fund_status}</h4>
-                <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{fund_desc}</p>
-            </div>
-            """, unsafe_allow_html=True)
+<div style="padding: 15px; border-radius: 5px; margin-top: 10px; margin-bottom: 20px; border-left: 4px solid {fund_color}; background-color: rgba({fund_bg}, 0.1);">
+    <h4 style="margin-top: 0; color: {fund_color};">{fund_status}</h4>
+    <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{fund_desc}</p>
+</div>
+""", unsafe_allow_html=True)
             
             st.markdown("<br><h3 style='margin-bottom: 10px;'>🕵️‍♂️ 3. 스마트머니 (외국인/기관) 수급 동향</h3>", unsafe_allow_html=True)
             
@@ -722,7 +722,6 @@ if symbol and yf_symbol:
             risk_color = "#29b6f6"
             risk_bg = "41, 182, 246"
             
-            # 💡 [V7.2 핵심 패치] 리스크 브리핑 개조식 번역 및 줄바꿈 적용
             risk_desc = ""
             if frgn_5d > 0 and inst_5d > 0:
                 risk_desc += "최근 5일간 외국인과 기관이 **함께 사들이며(쌍끌이 매수)** 돈이 강하게 몰리는 중임.<br><br>"
@@ -746,11 +745,11 @@ if symbol and yf_symbol:
                 risk_bg = "248, 81, 73"
 
             st.markdown(f"""
-            <div style="padding: 15px; border-radius: 5px; margin-top: 10px; margin-bottom: 20px; border-left: 4px solid {risk_color}; background-color: rgba({risk_bg}, 0.1);">
-                <h4 style="margin-top: 0; color: {risk_color};">{risk_status}</h4>
-                <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{risk_desc}</p>
-            </div>
-            """, unsafe_allow_html=True)
+<div style="padding: 15px; border-radius: 5px; margin-top: 10px; margin-bottom: 20px; border-left: 4px solid {risk_color}; background-color: rgba({risk_bg}, 0.1);">
+    <h4 style="margin-top: 0; color: {risk_color};">{risk_status}</h4>
+    <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{risk_desc}</p>
+</div>
+""", unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
             
@@ -846,7 +845,6 @@ if symbol and yf_symbol:
                 obv_end = plot_hist_1y['OBV'].iloc[-1]
                 obv_trend = obv_end - obv_start
                 
-                # 💡 [V7.2 핵심 패치] OBV 지표 브리핑 개조식 번역 및 줄바꿈 적용
                 if recent_price_trend > 2.0 and obv_trend < 0:
                     obv_color = "#f85149" 
                     obv_status = "🚨 [경고] 가짜 반등 및 세력 물량 떠넘기기 (분산)"
@@ -869,11 +867,11 @@ if symbol and yf_symbol:
                     box_style = "border-left: 4px solid #8b949e; background-color: rgba(139, 148, 158, 0.1);"
                     
                 st.markdown(f"""
-                <div style="padding: 15px; border-radius: 5px; margin-top: -10px; margin-bottom: 20px; {box_style}">
-                    <h4 style="margin-top: 0; color: {obv_color};">{obv_status}</h4>
-                    <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{obv_desc}</p>
-                </div>
-                """, unsafe_allow_html=True)
+<div style="padding: 15px; border-radius: 5px; margin-top: -10px; margin-bottom: 20px; {box_style}">
+    <h4 style="margin-top: 0; color: {obv_color};">{obv_status}</h4>
+    <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{obv_desc}</p>
+</div>
+""", unsafe_allow_html=True)
                 
             if not df_wk.empty:
                 plot_df_wk = df_wk.copy()
@@ -906,25 +904,24 @@ if symbol and yf_symbol:
                 )
                 with st.container(border=True): st.plotly_chart(fig_wk, use_container_width=True)
 
-                # 💡 [V7.2 핵심 패치] 실전 매매 시나리오 가이드 개조식 리포트 형태로 전면 교체
                 st.markdown("""
-                <div style="background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; margin-top: 20px;">
-                    <h3 style="margin-top: 0; color: #e6edf3; font-size: 1.5rem;">💡 실전 매매 시나리오 가이드</h3>
-                    <p style="color: #8b949e; font-size: 1.05rem; margin-bottom: 20px; line-height: 1.6;">차트에서 <b>'매수 타점(▲)'</b> 발생 시, 위쪽의 <b>'TOTAL SCORE (퀀트 스코어)'</b>에 따라 아래 2가지 시나리오로 기계적 대응을 권장함.</p>
-                    
-                    <div style="border-left: 5px solid #ef5350; background-color: rgba(239, 83, 80, 0.05); padding: 15px 20px; margin-bottom: 15px; border-radius: 0 8px 8px 0;">
-                        <h4 style="margin: 0 0 10px 0; color: #ef5350; font-size: 1.2rem;">🔥 시나리오 A (우량주 추세 매매) : 주봉 매수 신호 ➕ 스코어 8~10점</h4>
-                        <p style="margin: 0 0 5px 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 상태:</b> 기업의 가치(수익성/저평가)와 차트의 돈 흐름이 완벽히 일치하는 최고의 매수 타이밍임.</p>
-                        <p style="margin: 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 대응:</b> 비중을 실어서 매수하되, 변동성이 큰 한국 시장 특성상 무작정 장기투자하기보다 오름세가 꺾일 때(예: 주봉 10주선 이탈 시) 팔아서 수익을 챙기는 <b>'추세 매매'</b> 전략이 가장 안전함.</p>
-                    </div>
-                    
-                    <div style="border-left: 5px solid #29b6f6; background-color: rgba(41, 182, 246, 0.05); padding: 15px 20px; border-radius: 0 8px 8px 0;">
-                        <h4 style="margin: 0 0 10px 0; color: #29b6f6; font-size: 1.2rem;">🤔 시나리오 B (단기 수급/테마 매매) : 주봉 매수 신호 ➕ 스코어 4점 이하</h4>
-                        <p style="margin: 0 0 5px 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 상태:</b> 기업 가치는 부실하거나 비싸지만, 세력의 돈이 단기적으로 강하게 들어온 전형적인 테마/급등주 패턴임.</p>
-                        <p style="margin: 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 대응:</b> 반드시 차트의 <b>'ATR 스탑(점선 방어선)'</b>을 칼같이 지키고, 철저하게 짧게 먹고 빠지는 단기 매매로만 접근해야 함.</p>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+<div style="background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; margin-top: 20px;">
+    <h3 style="margin-top: 0; color: #e6edf3; font-size: 1.5rem;">💡 실전 매매 시나리오 가이드</h3>
+    <p style="color: #8b949e; font-size: 1.05rem; margin-bottom: 20px; line-height: 1.6;">차트에서 <b>'매수 타점(▲)'</b> 발생 시, 위쪽의 <b>'TOTAL SCORE (퀀트 스코어)'</b>에 따라 아래 2가지 시나리오로 기계적 대응을 권장함.</p>
+    
+    <div style="border-left: 5px solid #ef5350; background-color: rgba(239, 83, 80, 0.05); padding: 15px 20px; margin-bottom: 15px; border-radius: 0 8px 8px 0;">
+        <h4 style="margin: 0 0 10px 0; color: #ef5350; font-size: 1.2rem;">🔥 시나리오 A (우량주 추세 매매) : 주봉 매수 신호 ➕ 스코어 8~10점</h4>
+        <p style="margin: 0 0 5px 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 상태:</b> 기업의 가치(수익성/저평가)와 차트의 돈 흐름이 완벽히 일치하는 최고의 매수 타이밍임.</p>
+        <p style="margin: 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 대응:</b> 비중을 실어서 매수하되, 변동성이 큰 한국 시장 특성상 무작정 장기투자하기보다 오름세가 꺾일 때(예: 주봉 10주선 이탈 시) 팔아서 수익을 챙기는 <b>'추세 매매'</b> 전략이 가장 안전함.</p>
+    </div>
+    
+    <div style="border-left: 5px solid #29b6f6; background-color: rgba(41, 182, 246, 0.05); padding: 15px 20px; border-radius: 0 8px 8px 0;">
+        <h4 style="margin: 0 0 10px 0; color: #29b6f6; font-size: 1.2rem;">🤔 시나리오 B (단기 수급/테마 매매) : 주봉 매수 신호 ➕ 스코어 4점 이하</h4>
+        <p style="margin: 0 0 5px 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 상태:</b> 기업 가치는 부실하거나 비싸지만, 세력의 돈이 단기적으로 강하게 들어온 전형적인 테마/급등주 패턴임.</p>
+        <p style="margin: 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 대응:</b> 반드시 차트의 <b>'ATR 스탑(점선 방어선)'</b>을 칼같이 지키고, 철저하게 짧게 먹고 빠지는 단기 매매로만 접근해야 함.</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("### 🤖 전문가 핵심 지표 브리핑 (Tier 1)")
@@ -955,7 +952,6 @@ if symbol and yf_symbol:
                         response = model.generate_content(prompt)
                         st.success("✅ 종합 브리핑 완료!")
                         with st.container(border=True):
-                            # 💡 [V7.2 핵심 패치] AI가 명령을 무시해도 파이썬에서 강제로 마침표 뒤에 엔터 두 번을 때려박음
                             clean_text = re.sub(r'[\U00010000-\U0010ffff]', '', response.text.replace("*", ""))
                             clean_text = re.sub(r'([가-힣])\.\s*', r'\1.\n\n', clean_text)
                             clean_text = re.sub(r'\n{3,}', '\n\n', clean_text).strip()
