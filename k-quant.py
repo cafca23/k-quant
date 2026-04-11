@@ -26,7 +26,6 @@ st.markdown("""
     .banner-right { flex: 1; text-align: center; padding-left: 20px; }
     .banner h2 { margin: 0; padding: 0; font-size: 2.2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.4); }
     .banner p { margin: 8px 0 0 0; font-size: 1.15rem; opacity: 0.95; font-weight: 500;}
-    .checklist-box { background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
     .badge { padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 0.9rem; margin-bottom: 10px; display: inline-block; }
     .badge-growth { background-color: rgba(162, 28, 175, 0.2); color: #e879f9; border: 1px solid #c026d3; }
     .badge-value { background-color: rgba(3, 105, 161, 0.2); color: #38bdf8; border: 1px solid #0284c7; }
@@ -79,7 +78,6 @@ def get_search_options(df):
         options.append(f"[{code}] {name}{alias_str}")
     return options
 
-# 💡 [핵심 엔진] 네이버 금융에서 펀더멘털 및 "기업개요" 스크래핑
 @st.cache_data(ttl=300, show_spinner=False)
 def get_naver_finance_fundamentals(symbol, current_price):
     url = f"https://finance.naver.com/item/main.naver?code={symbol}"
@@ -117,7 +115,6 @@ def get_naver_finance_fundamentals(symbol, current_price):
                     except:
                         pass
         
-        # 💡 네이버 증권 기업개요(summary_info) 스크래핑
         summary_p = soup.select_one('.summary_info p')
         if summary_p:
             data['SUMMARY'] = summary_p.get_text(separator=' ', strip=True)
@@ -265,7 +262,6 @@ with st.sidebar:
             market_type = "KOSPI"
             company_name = symbol
             
-        # 💡 [사이드바 타깃 표시 패치] 회사 풀네임 출력
         st.success(f"🎯 현재 분석 타깃: **{company_name}**")
         
         if symbol:
@@ -310,10 +306,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_resize':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_grid_box':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_resize'
+        st.session_state.app_version = 'v_k_quant_grid_box'
         
     st.divider()
     
@@ -385,7 +381,6 @@ if symbol and yf_symbol:
             
             naver_data = get_naver_finance_fundamentals(symbol, current_price)
             
-            # 💡 [핵심] 배너용 1줄 회사 기업개요 자동 추출
             company_summary = naver_data.get('SUMMARY', '')
             if company_summary:
                 if "다." in company_summary:
@@ -567,7 +562,8 @@ if symbol and yf_symbol:
 </div>
 """, unsafe_allow_html=True)
             
-            # 💡 [V6.4 핵심 패치] 폰트 사이즈 +2pt(0.2rem 단위) 증가 및 완벽한 높이 매칭(stretch)
+            # 💡 [V6.5 핵심 패치] CSS Grid를 활용하여 왼쪽/오른쪽 박스 높이를 1px 오차 없이 완벽 매칭
+            # 글씨 크기도 2포인트(0.2rem 단위)씩 모두 키워 가독성 향상
             items_html = "".join([f'''<div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 18px; margin-bottom: 10px; background-color: #161b22; border-radius: 6px; border-left: 4px solid {'#3fb950' if item["status"] == 'pass' else ('#f85149' if item["status"] == 'fail' else '#d29922')}; border: 1px solid #30363d;">
     <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
         <span style="font-size: 1.3rem;">{'✅' if item["status"] == 'pass' else ('❌' if item["status"] == 'fail' else '💡')}</span>
@@ -578,12 +574,12 @@ if symbol and yf_symbol:
 </div>''' for item in checklist])
             
             st.markdown(f"""
-<div style="display: flex; gap: 20px; align-items: stretch; margin-bottom: 20px;">
-    <div class='checklist-box' style='flex: 1; text-align:center; display: flex; flex-direction: column; justify-content: center; margin: 0;'>
+<div style="display: grid; grid-template-columns: 1fr 1.8fr; gap: 20px; align-items: stretch; margin-bottom: 20px;">
+    <div style="background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; margin: 0;">
         <h3 style='margin:0 0 10px 0; color:#8b949e;'>TOTAL SCORE</h3>
         <h1 style='font-size: 5.5rem; margin:10px 0; color:{prog_color};'>{score}<span style='font-size: 2.5rem; color:#8b949e;'> / 10</span></h1>
     </div>
-    <div class='checklist-box' style='flex: 1.8; justify-content: center; margin: 0;'>
+    <div style="background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; display: flex; flex-direction: column; justify-content: center; margin: 0;">
         <h3 style='margin:0 0 15px 0; color:#8b949e; font-size: 1.4rem;'>평가 내용</h3>{items_html}
     </div>
 </div>
