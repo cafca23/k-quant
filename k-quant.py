@@ -26,6 +26,7 @@ st.markdown("""
     .banner-right { flex: 1; text-align: center; padding-left: 20px; }
     .banner h2 { margin: 0; padding: 0; font-size: 2.2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.4); }
     .banner p { margin: 8px 0 0 0; font-size: 1.15rem; opacity: 0.95; font-weight: 500;}
+    .checklist-box { background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
     .badge { padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 0.9rem; margin-bottom: 10px; display: inline-block; }
     .badge-growth { background-color: rgba(162, 28, 175, 0.2); color: #e879f9; border: 1px solid #c026d3; }
     .badge-value { background-color: rgba(3, 105, 161, 0.2); color: #38bdf8; border: 1px solid #0284c7; }
@@ -83,7 +84,7 @@ def get_naver_finance_fundamentals(symbol, current_price):
     url = f"https://finance.naver.com/item/main.naver?code={symbol}"
     data = {'PER': np.nan, 'EPS': np.nan, 'PBR': np.nan, 'BPS': np.nan, 'DIV': np.nan, 'ROE': np.nan, 'FOREIGN_RATIO': np.nan, 'SUMMARY': ''}
     try:
-        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
+        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
         soup = BeautifulSoup(r.text, 'html.parser')
         
         per = soup.find('em', id='_per')
@@ -121,6 +122,49 @@ def get_naver_finance_fundamentals(symbol, current_price):
             
     except: pass
     return data
+
+# 💡 [V7.0 핵심 엔진] 최근 5일 기관/외국인 누적 순매수 스크래핑
+@st.cache_data(ttl=300, show_spinner=False)
+def get_investor_trend(symbol):
+    url = f"https://finance.naver.com/item/frgn.naver?code={symbol}"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    trend_data = {"inst_5d": 0, "frgn_5d": 0, "frgn_hold": "N/A"}
+    try:
+        r = requests.get(url, headers=headers, timeout=5)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        tables = soup.find_all('table', {'class': 'type2'})
+        
+        if len(tables) >= 2:
+            rows = tables[1].find_all('tr')
+            i_sum = 0
+            f_sum = 0
+            cnt = 0
+            
+            for row in rows:
+                cols = row.find_all('td')
+                if len(cols) >= 9 and cols[0].text.strip():
+                    date_str = cols[0].text.strip()
+                    if '.' in date_str: 
+                        try:
+                            i_val = int(cols[5].text.replace(',', '').strip())
+                            f_val = int(cols[6].text.replace(',', '').strip())
+                            i_sum += i_val
+                            f_sum += f_val
+                            
+                            if cnt == 0:
+                                trend_data['frgn_hold'] = cols[8].text.strip()
+                                
+                            cnt += 1
+                            if cnt >= 5: 
+                                break
+                        except:
+                            pass
+                            
+            trend_data['inst_5d'] = i_sum
+            trend_data['frgn_5d'] = f_sum
+    except Exception as e:
+        pass
+    return trend_data
 
 @st.cache_data(ttl=86400, show_spinner="네이버 금융 동일업종 데이터를 스캔 중입니다... 🕵️‍♂️")
 def get_dynamic_peers(symbol, ticker_name, sector):
@@ -306,10 +350,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_grid_box':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_investor_flow':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_grid_box'
+        st.session_state.app_version = 'v_k_quant_investor_flow'
         
     st.divider()
     
@@ -380,6 +424,7 @@ if symbol and yf_symbol:
             rsi_val = hist['RSI'].iloc[-1]
             
             naver_data = get_naver_finance_fundamentals(symbol, current_price)
+            investor_trend = get_investor_trend(symbol) 
             
             company_summary = naver_data.get('SUMMARY', '')
             if company_summary:
@@ -562,8 +607,6 @@ if symbol and yf_symbol:
 </div>
 """, unsafe_allow_html=True)
             
-            # 💡 [V6.5 핵심 패치] CSS Grid를 활용하여 왼쪽/오른쪽 박스 높이를 1px 오차 없이 완벽 매칭
-            # 글씨 크기도 2포인트(0.2rem 단위)씩 모두 키워 가독성 향상
             items_html = "".join([f'''<div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 18px; margin-bottom: 10px; background-color: #161b22; border-radius: 6px; border-left: 4px solid {'#3fb950' if item["status"] == 'pass' else ('#f85149' if item["status"] == 'fail' else '#d29922')}; border: 1px solid #30363d;">
     <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
         <span style="font-size: 1.3rem;">{'✅' if item["status"] == 'pass' else ('❌' if item["status"] == 'fail' else '💡')}</span>
@@ -637,17 +680,31 @@ if symbol and yf_symbol:
             </div>
             """, unsafe_allow_html=True)
             
-            st.markdown("<br><h3 style='margin-bottom: 10px;'>3. 4대 리스크 & 수급 지표</h3>", unsafe_allow_html=True)
+            # 💡 [V7.0 핵심 패치] 스마트머니 (기관/외국인) 실시간 수급 동향 영역 추가
+            frgn_hold_str = investor_trend['frgn_hold'] if investor_trend['frgn_hold'] != "N/A" else f"{foreign_ratio * 100:.2f}%"
+            frgn_5d = investor_trend['frgn_5d']
+            inst_5d = investor_trend['inst_5d']
+            
+            f_delta = "매집 중 (순매수)" if frgn_5d > 0 else ("이탈 중 (순매도)" if frgn_5d < 0 else "중립")
+            f_color = "normal" if frgn_5d > 0 else ("inverse" if frgn_5d < 0 else "off")
+            
+            i_delta = "매집 중 (순매수)" if inst_5d > 0 else ("이탈 중 (순매도)" if inst_5d < 0 else "중립")
+            i_color = "normal" if inst_5d > 0 else ("inverse" if inst_5d < 0 else "off")
+            
+            st.markdown("<br><h3 style='margin-bottom: 10px;'>🕵️‍♂️ 3. 스마트머니 (외국인/기관) 수급 동향</h3>", unsafe_allow_html=True)
             with st.container(border=True):
-                kc1, kc2, kc3, kc4 = st.columns(4)
+                mc1, mc2, mc3 = st.columns(3)
+                with mc1: st.metric("외국인 보유율 (소진율)", frgn_hold_str, help="현재 외국인이 전체 주식 중 얼마나 쥐고 있는지 나타냅니다. 한국 시장은 13F 공시 같은 기관 전체 보유율은 공개되지 않으므로 외인 비중 추적이 핵심입니다.")
+                with mc2: st.metric("최근 5거래일 외국인 순매매", f"{frgn_5d:,.0f}주" if frgn_5d != 0 else "N/A", delta=f_delta, delta_color=f_color, help="최근 5일 동안 외국인이 이 주식을 순수하게 사모았는지(매집), 팔았는지(이탈) 1주 단위로 보여줍니다.")
+                with mc3: st.metric("최근 5거래일 기관 순매매", f"{inst_5d:,.0f}주" if inst_5d != 0 else "N/A", delta=i_delta, delta_color=i_color, help="최근 5일 동안 연기금, 투신 등 기관투자자들이 이 주식을 순수하게 매집했는지 이탈했는지 보여줍니다.")
+            
+            st.markdown("<br><h3 style='margin-bottom: 10px;'>🚨 4. 밸류업 & 잠재 리스크 지표</h3>", unsafe_allow_html=True)
+            with st.container(border=True):
+                kc1, kc2, kc3 = st.columns(3)
                 
                 div_val = f"{payout_ratio * 100:.2f}%" if pd.notna(payout_ratio) and payout_ratio > 0 else "미배당/무환원"
                 div_delta = "기업 밸류업 수혜" if pd.notna(payout_ratio) and payout_ratio >= 0.04 else ("주주환원 미흡" if not pd.notna(payout_ratio) or payout_ratio < 0.02 else "보통")
                 div_color = "normal" if pd.notna(payout_ratio) and payout_ratio >= 0.04 else ("inverse" if not pd.notna(payout_ratio) or payout_ratio < 0.02 else "off")
-                
-                for_val = f"{foreign_ratio * 100:.2f}%" if pd.notna(foreign_ratio) else "N/A"
-                for_delta = "외국인 주도주" if pd.notna(foreign_ratio) and foreign_ratio > 0.4 else ("외인 소외주" if pd.notna(foreign_ratio) and foreign_ratio < 0.1 else "수급 양호")
-                for_color = "normal" if pd.notna(foreign_ratio) and foreign_ratio > 0.4 else ("inverse" if pd.notna(foreign_ratio) and foreign_ratio < 0.1 else "off")
                 
                 overhang_val = "안전" if market_type == "KOSPI" and current_price > 50000 else "주의 요망"
                 overhang_delta = "코스피 대형주" if overhang_val == "안전" else "코스닥 잠재 물량폭탄 위험"
@@ -658,35 +715,34 @@ if symbol and yf_symbol:
                 margin_color = "normal" if margin_val == "안전" else "inverse"
                 
                 with kc1: st.metric(label="총 주주환원율 (배당 등)", value=div_val, delta=div_delta, delta_color=div_color, help="회사가 벌어들인 돈을 주주에게 얼마나 돌려주는지(배당수익률 포함) 나타냅니다. 코리아 디스카운트 해소의 핵심 열쇠입니다.")
-                with kc2: st.metric(label="외국인 소진율 (외인 지분율)", value=for_val, delta=for_delta, delta_color=for_color, help="외국인이 이 주식을 얼마나 보유하고 있는지 나타냅니다. 국장에서는 외국인 수급이 추세를 결정짓는 가장 강력한 세력입니다.")
-                with kc3: st.metric(label="CB/BW 오버행 (잠재매도) 리스크", value=overhang_val, delta=overhang_delta, delta_color=overhang_color, help="코스닥 소형주의 경우, 주가가 오를 때마다 전환사채(CB)나 신주인수권부사채(BW)가 주식으로 변환되어 매물 폭탄으로 쏟아질 위험을 경고합니다.")
-                with kc4: st.metric(label="신용잔고 경고 (빚투 비율)", value=margin_val, delta=margin_delta, delta_color=margin_color, help="개미들이 증권사에 빚을 내서(신용) 산 물량입니다. 이 비율이 높으면 세력들이 반대매매를 유도하기 위해 주가를 의도적으로 폭락시킬 위험이 매우 큽니다.")
+                with kc2: st.metric(label="CB/BW 오버행 (잠재매도) 리스크", value=overhang_val, delta=overhang_delta, delta_color=overhang_color, help="코스닥 소형주의 경우, 주가가 오를 때마다 전환사채(CB)나 신주인수권부사채(BW)가 주식으로 변환되어 매물 폭탄으로 쏟아질 위험을 경고합니다.")
+                with kc3: st.metric(label="신용잔고 경고 (빚투 비율)", value=margin_val, delta=margin_delta, delta_color=margin_color, help="개미들이 증권사에 빚을 내서(신용) 산 물량입니다. 이 비율이 높으면 세력들이 반대매매를 유도하기 위해 주가를 의도적으로 폭락시킬 위험이 매우 큽니다.")
                 
                 st.caption("※ CB/BW 오버행 및 신용잔고 수치는 종목의 시총과 소속 시장(코스닥)을 기반으로 한 1차 AI 위험 판독 결과입니다. 정확한 수치는 HTS 수급 탭을 병행 확인하십시오.")
             
-            risk_status = "3. 4대 리스크 & 수급 지표 브리핑"
+            risk_status = "스마트머니 & 리스크 종합 브리핑"
             risk_color = "#29b6f6"
             risk_bg = "41, 182, 246"
             
             risk_desc = ""
+            if frgn_5d > 0 and inst_5d > 0:
+                risk_desc += "최근 5일간 외국인과 기관이 **동반 매수(쌍끌이)**하며 강력한 수급 모멘텀을 형성하고 있습니다. "
+            elif frgn_5d < 0 and inst_5d < 0:
+                risk_desc += "최근 5일간 외국인과 기관이 **동반 매도(쌍끌이 이탈)** 중이므로 하락 변동성에 극도로 주의해야 합니다. "
+            else:
+                risk_desc += "외국인과 기관의 수급이 엇갈리며 치열한 손바뀜이 일어나고 있습니다. "
+                
             if pd.notna(payout_ratio) and payout_ratio >= 0.04:
-                risk_desc += f"주주환원율이 {payout_ratio*100:.1f}%로 우수하여 밸류업 수혜가 기대됩니다. "
+                risk_desc += f"여기에 주주환원율({payout_ratio*100:.1f}%)도 우수하여 하방 방어력이 단단합니다. "
             else:
-                risk_desc += "주주환원이 다소 미흡한 편입니다. "
-            
-            if pd.notna(foreign_ratio) and foreign_ratio > 0.4:
-                risk_desc += f"외국인 지분율이 {foreign_ratio*100:.1f}%로 높아 수급 주도권이 외인에게 있으며, "
-            elif pd.notna(foreign_ratio) and foreign_ratio < 0.1:
-                risk_desc += f"외국인 지분율이 {foreign_ratio*100:.1f}%로 낮아 기관이나 개인의 수급 영향력이 큽니다. "
-            else:
-                risk_desc += "외국인 수급은 양호한 수준입니다. "
+                risk_desc += "다만 주주환원이 다소 미흡한 점은 아쉽습니다. "
                 
             if market_type == "KOSPI" and current_price > 50000:
-                risk_desc += "우량 대형주로 분류되어 CB/BW 오버행 및 단기 신용잔고(빚투) 반대매매 리스크로부터 상대적으로 안전합니다."
+                risk_desc += "우량 대형주로 분류되어 CB/BW 오버행 및 반대매매 리스크로부터 비교적 안전합니다."
                 risk_color = "#3fb950"
                 risk_bg = "63, 185, 80"
             else:
-                risk_desc += "다만 중소형주 특성상 잠재적인 CB/BW 물량 출회(오버행)와 단기 신용잔고 비율 증가에 따른 변동성 확대(개미털기) 리스크를 항상 주의해야 합니다."
+                risk_desc += "중소형주 특성상 잠재적인 CB/BW 매물 폭탄(오버행)과 빚투 개미털기 리스크를 항상 염두에 두어야 합니다."
                 risk_color = "#f85149"
                 risk_bg = "248, 81, 73"
 
@@ -699,7 +755,7 @@ if symbol and yf_symbol:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            st.markdown("### 4. 동종 업계 비교")
+            st.markdown("### 5. 동종 업계 비교")
             if not peer_df.empty:
                 q_mark = "<span style='display:inline-block; width:14px; height:14px; border:1.5px solid #8b949e; color:#8b949e; border-radius:50%; text-align:center; line-height:11px; font-size:10px; font-weight:bold; cursor:help; vertical-align:middle; margin-left:4px;' title='{0}'>?</span>"
                 table_html = "<table class='peer-table'><tr>" \
@@ -759,7 +815,7 @@ if symbol and yf_symbol:
 
             plot_hist_1y = hist_1y.copy()
 
-            st.markdown("<br>### 📉 5. 최근 1년 주가 일봉 차트 & 세력 매집(OBV) 지표", unsafe_allow_html=True)
+            st.markdown("<br>### 📉 6. 최근 1년 주가 일봉 차트 & 세력 매집(OBV) 지표", unsafe_allow_html=True)
             
             with st.expander("🪄 차트 화면이 줌인/줌아웃으로 틀어졌을 때 1초 복구 팁"):
                 st.markdown("""
@@ -822,7 +878,7 @@ if symbol and yf_symbol:
             if not df_wk.empty:
                 plot_df_wk = df_wk.copy()
 
-                st.markdown("<br><br>### 🔭 6. 주봉차트 타점 발생기", unsafe_allow_html=True)
+                st.markdown("<br><br>### 🔭 7. 주봉차트 타점 발생기", unsafe_allow_html=True)
                 st.caption("※ 차트 확대/이동 후 화면이 틀어졌다면, 차트 빈 공간을 **'더블클릭'**하여 1초 만에 원상복구 하세요!")
                 
                 fig_wk = go.Figure()
@@ -878,7 +934,7 @@ if symbol and yf_symbol:
                         당신은 여의도 최고의 수석 퀀트 애널리스트입니다. 한국 주식인 [{company_name}] 분석 데이터를 바탕으로 핵심만 극도로 요약해서 브리핑해주세요.
                         - 터미널 점수: 10점 만점에 {score}점 ({judgment})
                         - 적용된 4차원 매트릭스: {stock_tier} -> 공식: {model_used}
-                        - 외국인 소진율: {for_val} / 배당환원율: {div_val}
+                        - 외국인 소진율: {for_val} / 최근 5일 외국인 순매수: {frgn_5d}주 / 최근 5일 기관 순매수: {inst_5d}주
                         - 해당 기업 Forward P/E: {forward_pe}배 / 동종 업계 경쟁사 중앙값: {ai_median_pe}
                         
                         [작성 규칙]
@@ -886,7 +942,7 @@ if symbol and yf_symbol:
                         2. 어투: 문장 끝에 "~습니다", "~입니다" 등 경어체 절대 금지. 반드시 "~함", "~됨", "~임", "~음"으로 끝나는 간결한 개조식/보고서체로 작성할 것. (예: 저평가 상태임. 주의가 필요함.)
                         3. 내용: 글이 너무 방대하지 않게 핵심만 극도로 요약해서 짧게 작성할 것.
                         4. 체급 평가: 이 기업이 {stock_tier}로 분류된 이유와 적용된 {model_used} 방식이 적절한지 평가.
-                        5. 수급 및 리스크: 외국인 지분율({for_val})과 주주환원율({div_val})을 바탕으로 국장 특화 리스크(신용, CB 등) 관리 방안 서술.
+                        5. 스마트머니 수급: 외국인 소진율과 더불어, 최근 5일간 기관과 외국인이 매집 중(쌍끌이)인지 이탈 중인지 명확히 브리핑.
                         6. 별표(*)와 이모지 사용 금지 (마지막 줄 전구 제외). 대괄호([ ]) 사용.
                         7. 가독성(매우 중요): 마침표(.)를 찍은 후에는 무조건 줄바꿈(엔터)을 넣어서 문장이 한 칸 아래로 내려가게 할 것. (문단이 아닌 문장 단위로 줄바꿈)
                         8. 마지막 줄: "💡 수석 비서의 최종 투자의견:" 이라는 항목 달고 1줄 요약 결론.
