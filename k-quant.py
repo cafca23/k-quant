@@ -123,7 +123,6 @@ def get_naver_finance_fundamentals(symbol, current_price):
     except: pass
     return data
 
-# 💡 [V7.0 핵심 엔진] 최근 5일 기관/외국인 누적 순매수 스크래핑
 @st.cache_data(ttl=300, show_spinner=False)
 def get_investor_trend(symbol):
     url = f"https://finance.naver.com/item/frgn.naver?code={symbol}"
@@ -350,10 +349,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_investor_flow':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_ai_fix':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_investor_flow'
+        st.session_state.app_version = 'v_k_quant_ai_fix'
         
     st.divider()
     
@@ -680,7 +679,8 @@ if symbol and yf_symbol:
             </div>
             """, unsafe_allow_html=True)
             
-            # 💡 [V7.0 핵심 패치] 스마트머니 (기관/외국인) 실시간 수급 동향 영역 추가
+            st.markdown("<br><h3 style='margin-bottom: 10px;'>🕵️‍♂️ 3. 스마트머니 (외국인/기관) 수급 동향</h3>", unsafe_allow_html=True)
+            
             frgn_hold_str = investor_trend['frgn_hold'] if investor_trend['frgn_hold'] != "N/A" else f"{foreign_ratio * 100:.2f}%"
             frgn_5d = investor_trend['frgn_5d']
             inst_5d = investor_trend['inst_5d']
@@ -691,7 +691,6 @@ if symbol and yf_symbol:
             i_delta = "매집 중 (순매수)" if inst_5d > 0 else ("이탈 중 (순매도)" if inst_5d < 0 else "중립")
             i_color = "normal" if inst_5d > 0 else ("inverse" if inst_5d < 0 else "off")
             
-            st.markdown("<br><h3 style='margin-bottom: 10px;'>🕵️‍♂️ 3. 스마트머니 (외국인/기관) 수급 동향</h3>", unsafe_allow_html=True)
             with st.container(border=True):
                 mc1, mc2, mc3 = st.columns(3)
                 with mc1: st.metric("외국인 보유율 (소진율)", frgn_hold_str, help="현재 외국인이 전체 주식 중 얼마나 쥐고 있는지 나타냅니다. 한국 시장은 13F 공시 같은 기관 전체 보유율은 공개되지 않으므로 외인 비중 추적이 핵심입니다.")
@@ -934,7 +933,7 @@ if symbol and yf_symbol:
                         당신은 여의도 최고의 수석 퀀트 애널리스트입니다. 한국 주식인 [{company_name}] 분석 데이터를 바탕으로 핵심만 극도로 요약해서 브리핑해주세요.
                         - 터미널 점수: 10점 만점에 {score}점 ({judgment})
                         - 적용된 4차원 매트릭스: {stock_tier} -> 공식: {model_used}
-                        - 외국인 소진율: {for_val} / 최근 5일 외국인 순매수: {frgn_5d}주 / 최근 5일 기관 순매수: {inst_5d}주
+                        - 외국인 소진율: {frgn_hold_str} / 최근 5일 외국인 순매수: {frgn_5d}주 / 최근 5일 기관 순매수: {inst_5d}주
                         - 해당 기업 Forward P/E: {forward_pe}배 / 동종 업계 경쟁사 중앙값: {ai_median_pe}
                         
                         [작성 규칙]
