@@ -18,10 +18,12 @@ st.markdown("""
 <style>
     [data-testid="stMetricValue"] { font-size: 26px !important; font-weight: 700 !important; color: #e6edf3; }
     [data-testid="stMetricLabel"] { color: #8b949e !important; font-weight: 600 !important; text-transform: uppercase; font-size: 0.85rem !important; letter-spacing: 0.05em; }
-    .banner { padding: 1.5rem; border-radius: 8px; text-align: center; margin-bottom: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    .banner { padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: space-between; }
     .buy-banner { background: linear-gradient(135deg, #0d47a1 0%, #1976d2 100%); color: white; border: 1px solid #1565c0; } 
     .hold-banner { background: linear-gradient(135deg, #052e16 0%, #166534 100%); color: white; border: 1px solid #15803d; }
     .sell-banner { background: linear-gradient(135deg, #450a0a 0%, #991b1b 100%); color: white; border: 1px solid #b91c1c; } 
+    .banner-left { flex: 1; text-align: left; padding-right: 20px; border-right: 1px solid rgba(255,255,255,0.2); }
+    .banner-right { flex: 1; text-align: center; padding-left: 20px; }
     .banner h2 { margin: 0; padding: 0; font-size: 2.2rem; text-shadow: 0 2px 4px rgba(0,0,0,0.4); }
     .banner p { margin: 8px 0 0 0; font-size: 1.15rem; opacity: 0.95; font-weight: 500;}
     .checklist-box { background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
@@ -141,7 +143,7 @@ def get_dynamic_peers(symbol, ticker_name, sector):
     try:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
         model = genai.GenerativeModel('gemini-2.5-flash', generation_config={"temperature": 0.1})
-        prompt = f"한국 주식 애널리스트입니다. '{ticker_name}'({sector} 산업)와 가장 밀접한 한국(KRX) 상장사 경쟁사 3곳의 6자리 종목코드를 쉼표로 구분해서 출력하세요. (예: 000660, 005380, 035420). 다른 텍스트 없이 오직 숫자 6자리 3개만 쉼표로 연결하세요."
+        prompt = f"한국 주식 애널리스트입니다. '{ticker_name}'({sector} 산업)와 가장 밀접한 한국(KRX) 상장사 경쟁사 3곳의 6자리 종목코문을 쉼표로 구분해서 출력하세요. (예: 000660, 005380, 035420). 다른 텍스트 없이 오직 숫자 6자리 3개만 쉼표로 연결하세요."
         res = model.generate_content(prompt)
         matches = re.findall(r'\d{6}', res.text)
         return ', '.join(matches)
@@ -299,10 +301,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_chart_tip':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_split_banner':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_chart_tip'
+        st.session_state.app_version = 'v_k_quant_split_banner'
         
     st.divider()
     
@@ -532,10 +534,17 @@ if symbol and yf_symbol:
             elif score >= 5: judgment = "🟢 분할 매수 / 관망 (Accumulate/Hold)"; banner_class = "hold-banner"; prog_color = "#166534"
             else: judgment = "🔴 매도 / 주의 (Sell/Warning)"; banner_class = "sell-banner"; prog_color = "#b91c1c"
             
+            # 💡 [V6.1 핵심 패치] 국장 전용 2분할(좌/우) 배너 레이아웃
             st.markdown(f"""
 <div class="banner {banner_class}">
-    <h2>{company_name} ({symbol})</h2>
-    <p>퀀트 평가 등급: <b style="font-size:1.3rem;">{judgment}</b> &nbsp;|&nbsp; 스코어 : <b>{score} 점</b> </p>
+    <div class="banner-left">
+        <h2 style="margin-bottom: 5px; font-size: 2.2rem;">{company_name} <span style="font-size:1.2rem; color:#8b949e; font-weight:normal;">한국 · {symbol} · {market_type}</span></h2>
+        <p style="font-size: 1.05rem; color: #c9d1d9; margin-top: 10px; margin-bottom: 0; font-weight: 400; background-color: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px; display: inline-block;">💡 {stock_tier} (적용 로직: {model_used})</p>
+    </div>
+    <div class="banner-right">
+        <p style="margin-bottom: 5px; color: rgba(255,255,255,0.8); font-size: 1rem;">퀀트 시스템 최종 평가</p>
+        <p style="font-size: 1.4rem; margin-top: 0;">등급: <b>{judgment}</b> &nbsp;|&nbsp; 스코어: <b style="font-size: 1.6rem;">{score}점</b></p>
+    </div>
 </div>
 """, unsafe_allow_html=True)
             
@@ -736,7 +745,6 @@ if symbol and yf_symbol:
 
             st.markdown("<br>### 📉 5. 최근 1년 주가 일봉 차트 & 세력 매집(OBV) 지표", unsafe_allow_html=True)
             
-            # 💡 [요청 반영] 차트 초기화 가이드 탑재 (일봉 차트 위)
             with st.expander("🪄 차트 화면이 줌인/줌아웃으로 틀어졌을 때 1초 복구 팁"):
                 st.markdown("""
                 * **마우스 더블클릭 (가장 추천):** 차트 안쪽 빈 공간을 마우스 왼쪽 버튼으로 **'따닥!'** 더블클릭하시면 틀어졌던 캔들이 즉시 처음 화면(Auto-scale)으로 깔끔하게 정렬됩니다.
@@ -799,7 +807,6 @@ if symbol and yf_symbol:
                 plot_df_wk = df_wk.copy()
 
                 st.markdown("<br><br>### 🔭 6. 주봉차트 타점 발생기", unsafe_allow_html=True)
-                # 💡 주봉 차트 위에도 간단한 캡션 추가
                 st.caption("※ 차트 확대/이동 후 화면이 틀어졌다면, 차트 빈 공간을 **'더블클릭'**하여 1초 만에 원상복구 하세요!")
                 
                 fig_wk = go.Figure()
