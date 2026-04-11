@@ -349,10 +349,10 @@ with st.sidebar:
     st.markdown("### 🤝 동종 업계 (Peer) 설정")
     peer_input = st.text_input("경쟁사 6자리 코드 (쉼표로 구분)", value=default_peers, help="네이버 증권 기반 자동 탐색 결과입니다.")
 
-    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_flush_left':
+    if 'last_ticker_state' not in st.session_state or st.session_state.last_ticker_state != ticker_input or st.session_state.get('app_version') != 'v_k_quant_fix_indent':
         st.session_state.g_slider = default_g
         st.session_state.last_ticker_state = ticker_input
-        st.session_state.app_version = 'v_k_quant_flush_left'
+        st.session_state.app_version = 'v_k_quant_fix_indent'
         
     st.divider()
     
@@ -593,38 +593,38 @@ if symbol and yf_symbol:
             elif score >= 5: judgment = "🟢 분할 매수 / 관망 (Accumulate/Hold)"; banner_class = "hold-banner"; prog_color = "#166534"
             else: judgment = "🔴 매도 / 주의 (Sell/Warning)"; banner_class = "sell-banner"; prog_color = "#b91c1c"
             
-# 💡 [V7.4 핵심 패치] st.markdown 내의 HTML 코드를 왼쪽 벽(Flush Left)에 완벽 밀착
+            # 💡 [V7.4 핵심 패치] HTML 코드 왼쪽 벽 완벽 밀착 (들여쓰기 0)
             st.markdown(f"""
 <div class="banner {banner_class}">
-    <div class="banner-left">
-        <h2 style="margin-bottom: 5px; font-size: 2.2rem;">{company_name} <span style="font-size:1.2rem; color:#8b949e; font-weight:normal;">한국 · {symbol} · {market_type}</span></h2>
-        <p style="font-size: 1.05rem; color: #c9d1d9; margin-top: 10px; margin-bottom: 0; font-weight: 400; background-color: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px; display: inline-block;">💡 {company_summary}</p>
-    </div>
-    <div class="banner-right">
-        <p style="margin-bottom: 5px; color: rgba(255,255,255,0.8); font-size: 1rem;">퀀트 시스템 최종 평가</p>
-        <p style="font-size: 1.4rem; margin-top: 0;">등급: <b>{judgment}</b> &nbsp;|&nbsp; 스코어: <b style="font-size: 1.6rem;">{score}점</b></p>
-    </div>
+<div class="banner-left">
+<h2 style="margin-bottom: 5px; font-size: 2.2rem;">{company_name} <span style="font-size:1.2rem; color:#8b949e; font-weight:normal;">한국 · {symbol} · {market_type}</span></h2>
+<p style="font-size: 1.05rem; color: #c9d1d9; margin-top: 10px; margin-bottom: 0; font-weight: 400; background-color: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px; display: inline-block;">💡 {company_summary}</p>
+</div>
+<div class="banner-right">
+<p style="margin-bottom: 5px; color: rgba(255,255,255,0.8); font-size: 1rem;">퀀트 시스템 최종 평가</p>
+<p style="font-size: 1.4rem; margin-top: 0;">등급: <b>{judgment}</b> &nbsp;|&nbsp; 스코어: <b style="font-size: 1.6rem;">{score}점</b></p>
+</div>
 </div>
 """, unsafe_allow_html=True)
             
             items_html = "".join([f'''<div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 18px; margin-bottom: 10px; background-color: #161b22; border-radius: 6px; border-left: 4px solid {'#3fb950' if item["status"] == 'pass' else ('#f85149' if item["status"] == 'fail' else '#d29922')}; border: 1px solid #30363d;">
-    <div style="display: flex; align-items: center; gap: 15px; flex: 1;">
-        <span style="font-size: 1.3rem;">{'✅' if item["status"] == 'pass' else ('❌' if item["status"] == 'fail' else '💡')}</span>
-        <span style="color: {'#3fb950' if item["status"] == 'pass' else ('#f85149' if item["status"] == 'fail' else '#d29922')}; font-weight: bold; font-size: 1.0rem; min-width: 60px; text-align: center;">{item["category"]}</span>
-        <span style="color: #c9d1d9; font-size: 1.15rem;">{item["desc"]}</span>
-    </div>
-    <div style="font-weight: bold; color: {'#3fb950' if item["status"] == 'pass' else ('#f85149' if item["status"] == 'fail' else '#d29922')}; font-size: 1.25rem;">{item["score"]}점</div>
+<div style="display: flex; align-items: center; gap: 15px; flex: 1;">
+<span style="font-size: 1.3rem;">{'✅' if item["status"] == 'pass' else ('❌' if item["status"] == 'fail' else '💡')}</span>
+<span style="color: {'#3fb950' if item["status"] == 'pass' else ('#f85149' if item["status"] == 'fail' else '#d29922')}; font-weight: bold; font-size: 1.0rem; min-width: 60px; text-align: center;">{item["category"]}</span>
+<span style="color: #c9d1d9; font-size: 1.15rem;">{item["desc"]}</span>
+</div>
+<div style="font-weight: bold; color: {'#3fb950' if item["status"] == 'pass' else ('#f85149' if item["status"] == 'fail' else '#d29922')}; font-size: 1.25rem;">{item["score"]}점</div>
 </div>''' for item in checklist])
             
             st.markdown(f"""
 <div style="display: grid; grid-template-columns: 1fr 1.8fr; gap: 20px; align-items: stretch; margin-bottom: 20px;">
-    <div style="background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; margin: 0;">
-        <h3 style='margin:0 0 10px 0; color:#8b949e;'>TOTAL SCORE</h3>
-        <h1 style='font-size: 5.5rem; margin:10px 0; color:{prog_color};'>{score}<span style='font-size: 2.5rem; color:#8b949e;'> / 10</span></h1>
-    </div>
-    <div style="background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; display: flex; flex-direction: column; justify-content: center; margin: 0;">
-        <h3 style='margin:0 0 15px 0; color:#8b949e; font-size: 1.4rem;'>평가 내용</h3>{items_html}
-    </div>
+<div style="background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; margin: 0;">
+<h3 style='margin:0 0 10px 0; color:#8b949e;'>TOTAL SCORE</h3>
+<h1 style='font-size: 5.5rem; margin:10px 0; color:{prog_color};'>{score}<span style='font-size: 2.5rem; color:#8b949e;'> / 10</span></h1>
+</div>
+<div style="background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; display: flex; flex-direction: column; justify-content: center; margin: 0;">
+<h3 style='margin:0 0 15px 0; color:#8b949e; font-size: 1.4rem;'>평가 내용</h3>{items_html}
+</div>
 </div>
 """, unsafe_allow_html=True)
             
@@ -673,8 +673,8 @@ if symbol and yf_symbol:
             
             st.markdown(f"""
 <div style="padding: 15px; border-radius: 5px; margin-top: 10px; margin-bottom: 20px; border-left: 4px solid {fund_color}; background-color: rgba({fund_bg}, 0.1);">
-    <h4 style="margin-top: 0; color: {fund_color};">{fund_status}</h4>
-    <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{fund_desc}</p>
+<h4 style="margin-top: 0; color: {fund_color};">{fund_status}</h4>
+<p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{fund_desc}</p>
 </div>
 """, unsafe_allow_html=True)
             
@@ -746,8 +746,8 @@ if symbol and yf_symbol:
 
             st.markdown(f"""
 <div style="padding: 15px; border-radius: 5px; margin-top: 10px; margin-bottom: 20px; border-left: 4px solid {risk_color}; background-color: rgba({risk_bg}, 0.1);">
-    <h4 style="margin-top: 0; color: {risk_color};">{risk_status}</h4>
-    <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{risk_desc}</p>
+<h4 style="margin-top: 0; color: {risk_color};">{risk_status}</h4>
+<p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{risk_desc}</p>
 </div>
 """, unsafe_allow_html=True)
             
@@ -868,8 +868,8 @@ if symbol and yf_symbol:
                     
                 st.markdown(f"""
 <div style="padding: 15px; border-radius: 5px; margin-top: -10px; margin-bottom: 20px; {box_style}">
-    <h4 style="margin-top: 0; color: {obv_color};">{obv_status}</h4>
-    <p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{obv_desc}</p>
+<h4 style="margin-top: 0; color: {obv_color};">{obv_status}</h4>
+<p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{obv_desc}</p>
 </div>
 """, unsafe_allow_html=True)
                 
@@ -906,20 +906,18 @@ if symbol and yf_symbol:
 
                 st.markdown("""
 <div style="background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; margin-top: 20px;">
-    <h3 style="margin-top: 0; color: #e6edf3; font-size: 1.5rem;">💡 실전 매매 시나리오 가이드</h3>
-    <p style="color: #8b949e; font-size: 1.05rem; margin-bottom: 20px; line-height: 1.6;">차트에서 <b>'매수 타점(▲)'</b> 발생 시, 위쪽의 <b>'TOTAL SCORE (퀀트 스코어)'</b>에 따라 아래 2가지 시나리오로 기계적 대응을 권장함.</p>
-    
-    <div style="border-left: 5px solid #ef5350; background-color: rgba(239, 83, 80, 0.05); padding: 15px 20px; margin-bottom: 15px; border-radius: 0 8px 8px 0;">
-        <h4 style="margin: 0 0 10px 0; color: #ef5350; font-size: 1.2rem;">🔥 시나리오 A (우량주 추세 매매) : 주봉 매수 신호 ➕ 스코어 8~10점</h4>
-        <p style="margin: 0 0 5px 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 상태:</b> 기업의 가치(수익성/저평가)와 차트의 돈 흐름이 완벽히 일치하는 최고의 매수 타이밍임.</p>
-        <p style="margin: 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 대응:</b> 비중을 실어서 매수하되, 변동성이 큰 한국 시장 특성상 무작정 장기투자하기보다 오름세가 꺾일 때(예: 주봉 10주선 이탈 시) 팔아서 수익을 챙기는 <b>'추세 매매'</b> 전략이 가장 안전함.</p>
-    </div>
-    
-    <div style="border-left: 5px solid #29b6f6; background-color: rgba(41, 182, 246, 0.05); padding: 15px 20px; border-radius: 0 8px 8px 0;">
-        <h4 style="margin: 0 0 10px 0; color: #29b6f6; font-size: 1.2rem;">🤔 시나리오 B (단기 수급/테마 매매) : 주봉 매수 신호 ➕ 스코어 4점 이하</h4>
-        <p style="margin: 0 0 5px 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 상태:</b> 기업 가치는 부실하거나 비싸지만, 세력의 돈이 단기적으로 강하게 들어온 전형적인 테마/급등주 패턴임.</p>
-        <p style="margin: 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 대응:</b> 반드시 차트의 <b>'ATR 스탑(점선 방어선)'</b>을 칼같이 지키고, 철저하게 짧게 먹고 빠지는 단기 매매로만 접근해야 함.</p>
-    </div>
+<h3 style="margin-top: 0; color: #e6edf3; font-size: 1.5rem;">💡 실전 매매 시나리오 가이드</h3>
+<p style="color: #8b949e; font-size: 1.05rem; margin-bottom: 20px; line-height: 1.6;">차트에서 <b>'매수 타점(▲)'</b> 발생 시, 위쪽의 <b>'TOTAL SCORE (퀀트 스코어)'</b>에 따라 아래 2가지 시나리오로 기계적 대응을 권장함.</p>
+<div style="border-left: 5px solid #ef5350; background-color: rgba(239, 83, 80, 0.05); padding: 15px 20px; margin-bottom: 15px; border-radius: 0 8px 8px 0;">
+<h4 style="margin: 0 0 10px 0; color: #ef5350; font-size: 1.2rem;">🔥 시나리오 A (우량주 추세 매매) : 주봉 매수 신호 ➕ 스코어 8~10점</h4>
+<p style="margin: 0 0 5px 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 상태:</b> 기업의 가치(수익성/저평가)와 차트의 돈 흐름이 완벽히 일치하는 최고의 매수 타이밍임.</p>
+<p style="margin: 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 대응:</b> 비중을 실어서 매수하되, 변동성이 큰 한국 시장 특성상 무작정 장기투자하기보다 오름세가 꺾일 때(예: 주봉 10주선 이탈 시) 팔아서 수익을 챙기는 <b>'추세 매매'</b> 전략이 가장 안전함.</p>
+</div>
+<div style="border-left: 5px solid #29b6f6; background-color: rgba(41, 182, 246, 0.05); padding: 15px 20px; border-radius: 0 8px 8px 0;">
+<h4 style="margin: 0 0 10px 0; color: #29b6f6; font-size: 1.2rem;">🤔 시나리오 B (단기 수급/테마 매매) : 주봉 매수 신호 ➕ 스코어 4점 이하</h4>
+<p style="margin: 0 0 5px 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 상태:</b> 기업 가치는 부실하거나 비싸지만, 세력의 돈이 단기적으로 강하게 들어온 전형적인 테마/급등주 패턴임.</p>
+<p style="margin: 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 대응:</b> 반드시 차트의 <b>'ATR 스탑(점선 방어선)'</b>을 칼같이 지키고, 철저하게 짧게 먹고 빠지는 단기 매매로만 접근해야 함.</p>
+</div>
 </div>
 """, unsafe_allow_html=True)
 
