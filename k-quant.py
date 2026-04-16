@@ -946,7 +946,7 @@ if symbol and yf_symbol:
                         2. 어투: 문장 끝은 반드시 "~함", "~임", "~됨", "~기대됨" 등 간결한 보고서체로 작성할 것. (예: 저평가 상태임. 주의가 필요함.)
                         3. 내용 밀도: 각 항목의 '- 분석 요약:'과 '- 핵심 근거:' 사이에는 절대 빈 줄(엔터)을 넣지 말고 바로 위아래로 붙여서 출력할 것.
                         4. 기호 통제: 이모지는 제목에만 쓰고 본문에는 절대 쓰지 말 것.
-                        5. 해시태그 규칙: 맨 마지막에 띄어쓰기 없이 단어 앞에 '#'을 붙여서 쉼표로 나열할 것.
+                        5. 해시태그 규칙: "블로그용 해시태그" 같은 설명 문구는 절대 쓰지 말고, 오직 태그만 맨 마지막에 쉼표(,) 없이 빈칸(스페이스바)으로 한 칸씩만 띄워서 나열할 것.
 
                         [지정된 리포트 양식]
                         ### 1. 비즈니스 모델 및 경제적 해자 : [ A / B / C ] 등급
@@ -980,7 +980,7 @@ if symbol and yf_symbol:
                         - **투자 결론:** (종합 매력도 요약)
                         - **트레이딩 전략:** (진입 타점 및 대응책)
 
-                        #{company_name}주가, #{company_name}전망, #{company_name}실적, #실전매매, #주식분석, #퀀트투자
+                        #{company_name}주가 #{company_name}전망 #{company_name}실적 #실전매매 #주식분석 #퀀트투자
                         """
                         response = model.generate_content(prompt)
                         st.success("✅ 종합 브리핑 완료!")
@@ -989,8 +989,6 @@ if symbol and yf_symbol:
                             clean_text = re.sub(r'[\U00010000-\U0010ffff]', '', clean_text)
                             clean_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', clean_text)
                             clean_text = clean_text.replace("*", "")
-                            
-                            # 💡 파이썬 기본 개행(\n)만 HTML 줄바꿈(<br>)으로 바꿔줍니다. (마침표 분리 제거)
                             clean_text = clean_text.replace('\n', '<br>')
                             
                             st.markdown(f"""
