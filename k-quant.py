@@ -752,176 +752,6 @@ if symbol and yf_symbol:
 """, unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
-            
-            st.markdown("### 5. 동종 업계 비교")
-            if not peer_df.empty:
-                q_mark = "<span style='display:inline-block; width:14px; height:14px; border:1.5px solid #8b949e; color:#8b949e; border-radius:50%; text-align:center; line-height:11px; font-size:10px; font-weight:bold; cursor:help; vertical-align:middle; margin-left:4px;' title='{0}'>?</span>"
-                table_html = "<table class='peer-table'><tr>" \
-                             "<th>Company (기업명)</th>" \
-                             f"<th>Price (현재 주가) {q_mark.format('현재 거래되는 주식의 가격입니다.')}</th>" \
-                             f"<th>PER (주가/수익) {q_mark.format('주가수익비율. 1주당 수익 대비 주가가 몇 배인지 나타냅니다. 낮을수록 저평가.')}</th>" \
-                             f"<th>PBR (주가/순자산) {q_mark.format('주가순자산비율. 1주당 순자산 대비 주가가 몇 배인지 나타냅니다. 1 미만이면 장부상 청산가치보다 저렴하다는 뜻입니다.')}</th>" \
-                             f"<th>ROE (자기자본이익률) {q_mark.format('자기자본이익률. 주주가 투자한 돈으로 1년간 얼마나 이익을 냈는지 나타냅니다. 15% 이상이면 우수.')}</th>" \
-                             f"<th>EPS (주당순이익) {q_mark.format('주당순이익. 1주가 1년 동안 벌어들인 순이익입니다.')}</th>" \
-                             f"<th>P/S (주가/매출액) {q_mark.format('주가매출비율. 1주당 매출액 대비 주가가 몇 배인지 나타냅니다. 이익이 없는 적자 성장주 평가에 유용합니다.')}</th>" \
-                             "</tr>"
-                for _, row in peer_df.iterrows():
-                    is_main = row['Ticker'] == company_name
-                    row_class = "peer-main-row" if is_main else ""
-                    table_html += f"<tr class='{row_class}'><td>{row['Ticker']}</td><td>{fmt_price(row['Price'])}</td><td>{fmt_multi(row['P/E'])}</td><td>{fmt_multi(row['P/B'])}</td><td>{fmt_pct(row['ROE'])}</td><td>{fmt_price(row['EPS'])}</td><td>{fmt_multi(row['P/S'])}</td></tr>"
-                
-                median_pe = peer_df['P/E'].median()
-                median_pb = peer_df['P/B'].median()
-                median_roe = peer_df['ROE'].median()
-                median_eps = peer_df['EPS'].median()
-                median_ps = peer_df['P/S'].median() if 'P/S' in peer_df.columns else np.nan
-                
-                table_html += f"<tr class='peer-median-row'><td>산업 중앙값 (Median)</td><td>-</td><td>{fmt_multi(median_pe)}</td><td>{fmt_multi(median_pb)}</td><td>{fmt_pct(median_roe)}</td><td>{fmt_price(median_eps)}</td><td>{fmt_multi(median_ps)}</td></tr></table>"
-                
-                with st.container(border=True): st.markdown(table_html, unsafe_allow_html=True)
-            else:
-                st.warning("경쟁사 데이터를 불러올 수 없습니다.")
-                
-            st.markdown("<br>", unsafe_allow_html=True)
-
-            if not hist_10y.empty and final_fair_value != "N/A":
-                df_10y = hist_10y[['Close']].copy()
-                df_10y.rename(columns={'Close': 'Price'}, inplace=True)
-                latest_date = df_10y.index[-1]
-                years_diff = (latest_date - df_10y.index).days / 365.25
-                df_10y['Value'] = final_fair_value / ((1 + g/100) ** years_diff)
-                df_10y['Over_Top'] = np.maximum(df_10y['Price'], df_10y['Value'])
-                df_10y['Under_Bottom'] = np.minimum(df_10y['Price'], df_10y['Value'])
-
-                fig_val = go.Figure()
-                fig_val.add_trace(go.Scatter(x=df_10y.index, y=df_10y['Value'], line=dict(width=0), showlegend=False, hoverinfo='skip'))
-                fig_val.add_trace(go.Scatter(x=df_10y.index, y=df_10y['Over_Top'], fill='tonexty', fillcolor='rgba(239, 83, 80, 0.3)', line=dict(width=0), showlegend=False, hoverinfo='skip'))
-                fig_val.add_trace(go.Scatter(x=df_10y.index, y=df_10y['Under_Bottom'], line=dict(width=0), showlegend=False, hoverinfo='skip'))
-                fig_val.add_trace(go.Scatter(x=df_10y.index, y=df_10y['Value'], fill='tonexty', fillcolor='rgba(102, 187, 106, 0.3)', line=dict(width=0), showlegend=False, hoverinfo='skip'))
-                fig_val.add_trace(go.Scatter(x=df_10y.index, y=df_10y['Price'], mode='lines', line=dict(color='#29b6f6', width=2), name='실제 주가 (Price)'))
-                fig_val.add_trace(go.Scatter(x=df_10y.index, y=df_10y['Value'], mode='lines', line=dict(color='#ffa726', width=2, dash='dot'), name=f'추정 적정가치 ({model_used})'))
-
-                fig_val.update_layout(
-                    title=dict(text="📊 10 YR Price to Intrinsic Value Variance Analysis", font=dict(size=20), x=0.5, xanchor='center'),
-                    hovermode="x unified", height=550, margin=dict(l=0, r=0, t=50, b=0),
-                    template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                    xaxis=dict(showgrid=True, gridcolor='#30363d', zerolinecolor='#30363d'),
-                    yaxis=dict(showgrid=True, gridcolor='#30363d', zerolinecolor='#30363d', side='right', tickprefix="₩"),
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-                )
-                with st.container(border=True): st.plotly_chart(fig_val, use_container_width=True)
-
-            plot_hist_1y = hist_1y.copy()
-
-            st.markdown("<br>### 📉 6. 최근 1년 주가 일봉 차트 & 세력 매집(OBV) 지표", unsafe_allow_html=True)
-            
-            with st.expander("🪄 차트 화면이 줌인/줌아웃으로 틀어졌을 때 1초 복구 팁"):
-                st.markdown("""
-                * **마우스 더블클릭 (가장 추천):** 차트 안쪽 빈 공간을 마우스 왼쪽 버튼으로 **'따닥!'** 더블클릭하시면 틀어졌던 캔들이 즉시 처음 화면(Auto-scale)으로 깔끔하게 정렬됩니다.
-                * **홈(Home) 버튼 누르기:** 차트 우측 상단 모서리에 마우스를 올리면 나타나는 반투명 메뉴에서 **집 모양 아이콘(Reset axes)**을 누르셔도 완벽하게 복구됩니다.
-                """)
-            
-            fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.75, 0.25])
-            fig.add_trace(go.Candlestick(x=plot_hist_1y.index, open=plot_hist_1y['Open'], high=plot_hist_1y['High'], low=plot_hist_1y['Low'], close=plot_hist_1y['Close'], increasing_line_color='#ef5350', decreasing_line_color='#42a5f5', name=f"{company_name} 캔들"), row=1, col=1)
-            fig.add_trace(go.Scatter(x=plot_hist_1y.index, y=plot_hist_1y['SMA50'], mode='lines', line=dict(color='#ffd600', width=1.5), name='50일 이동평균'), row=1, col=1)
-            fig.add_trace(go.Scatter(x=plot_hist_1y.index, y=plot_hist_1y['SMA200'], mode='lines', line=dict(color='#00b0ff', width=1.5), name='200일 이동평균'), row=1, col=1)
-            fig.add_trace(go.Scatter(x=plot_hist_1y.index, y=plot_hist_1y['OBV'], mode='lines', line=dict(color='#e879f9', width=2), name='OBV (매집량)'), row=2, col=1)
-            
-            fig.update_layout(
-                xaxis_rangeslider_visible=False, height=750, margin=dict(l=0, r=0, t=10, b=0),
-                template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-            )
-            fig.update_yaxes(title_text="주가 (₩)", showgrid=True, gridcolor='#30363d', zerolinecolor='#30363d', side='right', row=1, col=1)
-            fig.update_yaxes(title_text="OBV Volume", showgrid=True, gridcolor='#30363d', zerolinecolor='#30363d', side='right', row=2, col=1)
-            fig.update_xaxes(showgrid=True, gridcolor='#30363d', zerolinecolor='#30363d', rangeslider_visible=False)
-            
-            with st.container(border=True): st.plotly_chart(fig, use_container_width=True)
-            
-            if len(plot_hist_1y) >= 60:
-                lookback = 60
-                recent_price_trend = (plot_hist_1y['Close'].iloc[-1] - plot_hist_1y['Close'].iloc[-lookback]) / plot_hist_1y['Close'].iloc[-lookback] * 100
-                obv_start = plot_hist_1y['OBV'].iloc[-lookback]
-                obv_end = plot_hist_1y['OBV'].iloc[-1]
-                obv_trend = obv_end - obv_start
-                
-                if recent_price_trend > 2.0 and obv_trend < 0:
-                    obv_color = "#f85149" 
-                    obv_status = "🚨 [경고] 가짜 반등 및 세력 물량 떠넘기기 (분산)"
-                    obv_desc = "최근 3개월(60일)간 주가는 올랐거나 버티고 있지만, 실제 매집량(OBV)은 오히려 떨어지는 중임.<br><br>세력들이 주가를 띄워놓고 개인들에게 비싸게 넘기며 탈출 중일 확률이 높은 아주 위험한 자리임."
-                    box_style = "border-left: 4px solid #f85149; background-color: rgba(248, 81, 73, 0.1);"
-                elif recent_price_trend < -2.0 and obv_trend > 0:
-                    obv_color = "#3fb950" 
-                    obv_status = "🌟 [기회] 스마트머니 은밀한 매집 (다이버전스)"
-                    obv_desc = "최근 3개월(60일)간 주가는 떨어지는데, 실제 매집량(OBV)은 꾸준히 오르는 중임.<br><br>개인들이 겁먹고 던지는 물량을 큰손(세력)들이 바닥에서 조용히 쓸어 담고 있는 강력한 매수 신호임."
-                    box_style = "border-left: 4px solid #3fb950; background-color: rgba(63, 185, 80, 0.1);"
-                elif recent_price_trend >= -2.0 and obv_trend >= 0:
-                    obv_color = "#29b6f6" 
-                    obv_status = "📈 [안정] 건전한 우상향 추세 (추세 확증)"
-                    obv_desc = "주가와 매집량(OBV)이 함께 안정적으로 오르는 중임.<br><br>거래량이 든든하게 받쳐주는 건강한 상승장임.<br><br>큰손(세력)들도 주식을 팔지 않고 계속 쥐고 가는 중임."
-                    box_style = "border-left: 4px solid #29b6f6; background-color: rgba(41, 182, 246, 0.1);"
-                else:
-                    obv_color = "#8b949e" 
-                    obv_status = "📉 [위험] 강력한 하락세 및 세력 이탈 (투매)"
-                    obv_desc = "주가와 매집량(OBV)이 모두 밑으로 곤두박질치는 중임.<br><br>세력과 기관들이 앞다투어 주식을 던지며 탈출 중임.<br><br>떨어지는 칼날을 맨손으로 잡으면 절대 안 되는 위험한 차트임."
-                    box_style = "border-left: 4px solid #8b949e; background-color: rgba(139, 148, 158, 0.1);"
-                    
-                st.markdown(f"""
-<div style="padding: 15px; border-radius: 5px; margin-top: -10px; margin-bottom: 20px; {box_style}">
-<h4 style="margin-top: 0; color: {obv_color};">{obv_status}</h4>
-<p style="margin-bottom: 0; font-size: 0.95rem; color: #c9d1d9; line-height: 1.6;">{obv_desc}</p>
-</div>
-""", unsafe_allow_html=True)
-                
-            if not df_wk.empty:
-                plot_df_wk = df_wk.copy()
-
-                st.markdown("<br><br>### 🔭 7. 주봉차트 타점 발생기", unsafe_allow_html=True)
-                st.caption("※ 차트 확대/이동 후 화면이 틀어졌다면, 차트 빈 공간을 **'더블클릭'**하여 1초 만에 원상복구 하세요!")
-                
-                fig_wk = go.Figure()
-                fig_wk.add_trace(go.Candlestick(x=plot_df_wk.index, open=plot_df_wk['Open'], high=plot_df_wk['High'], low=plot_df_wk['Low'], close=plot_df_wk['Close'], increasing_line_color='#ef5350', decreasing_line_color='#42a5f5', name=f"{company_name} 주봉"))
-                fig_wk.add_trace(go.Scatter(x=plot_df_wk.index, y=plot_df_wk['MA10'], mode='lines', line=dict(color='#ab47bc', width=1.5), name='10주선'))
-                fig_wk.add_trace(go.Scatter(x=plot_df_wk.index, y=plot_df_wk['MA20'], mode='lines', line=dict(color='#ffd600', width=1.5), name='20주선'))
-                fig_wk.add_trace(go.Scatter(x=plot_df_wk.index, y=plot_df_wk['MA60'], mode='lines', line=dict(color='#00e676', width=2.5), name='60주선'))
-                fig_wk.add_trace(go.Scatter(x=plot_df_wk.index, y=plot_df_wk['MA120'], mode='lines', line=dict(color='#8d6e63', width=1.5), name='120주선'))
-                fig_wk.add_trace(go.Scatter(x=plot_df_wk.index, y=plot_df_wk['ATR_Stop'], mode='lines', line=dict(color='#ff9800', width=2, dash='dot'), name='ATR 스탑 방어선'))
-                
-                y_main = plot_df_wk[df_wk['Signal_Main']]['Low'] * 0.92
-                y_re = plot_df_wk[df_wk['Signal_Reentry']]['Low'] * 0.92
-                y_sell = plot_df_wk[df_wk['Signal_Sell']]['High'] * 1.08
-                
-                fig_wk.add_trace(go.Scatter(x=plot_df_wk[df_wk['Signal_Main']].index, y=y_main, mode='markers', marker=dict(symbol='triangle-up', color='red', size=20), name=' 매수 타점'))
-                fig_wk.add_trace(go.Scatter(x=plot_df_wk[df_wk['Signal_Reentry']].index, y=y_re, mode='markers', marker=dict(symbol='triangle-up', color='#00e676', size=16), name=' 재진입 타점'))
-                fig_wk.add_trace(go.Scatter(x=plot_df_wk[df_wk['Signal_Sell']].index, y=y_sell, mode='markers', marker=dict(symbol='triangle-down', color='#29b6f6', size=16), name=' 매도 타점'))
-                
-                fig_wk.update_layout(
-                    xaxis_rangeslider_visible=False, height=650, margin=dict(l=0, r=0, t=10, b=0),
-                    template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                    xaxis=dict(showgrid=True, gridcolor='#30363d', zerolinecolor='#30363d'),
-                    yaxis=dict(showgrid=True, gridcolor='#30363d', zerolinecolor='#30363d', side='right', tickprefix="₩"),
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-                )
-                with st.container(border=True): st.plotly_chart(fig_wk, use_container_width=True)
-
-                st.markdown("""
-<div style="background-color: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d; margin-top: 20px;">
-<h3 style="margin-top: 0; color: #e6edf3; font-size: 1.5rem;">💡 실전 매매 시나리오 가이드</h3>
-<p style="color: #8b949e; font-size: 1.05rem; margin-bottom: 20px; line-height: 1.6;">차트에서 <b>'매수 타점(▲)'</b> 발생 시, 위쪽의 <b>'TOTAL SCORE (퀀트 스코어)'</b>에 따라 아래 2가지 시나리오로 기계적 대응을 권장함.</p>
-<div style="border-left: 5px solid #ef5350; background-color: rgba(239, 83, 80, 0.05); padding: 15px 20px; margin-bottom: 15px; border-radius: 0 8px 8px 0;">
-<h4 style="margin: 0 0 10px 0; color: #ef5350; font-size: 1.2rem;">🔥 시나리오 A (우량주 추세 매매) : 주봉 매수 신호 ➕ 스코어 8~10점</h4>
-<p style="margin: 0 0 5px 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 상태:</b> 기업의 가치(수익성/저평가)와 차트의 돈 흐름이 완벽히 일치하는 최고의 매수 타이밍임.</p>
-<p style="margin: 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 대응:</b> 비중을 실어서 매수하되, 변동성이 큰 한국 시장 특성상 무작정 장기투자하기보다 오름세가 꺾일 때(예: 주봉 10주선 이탈 시) 팔아서 수익을 챙기는 <b>'추세 매매'</b> 전략이 가장 안전함.</p>
-</div>
-<div style="border-left: 5px solid #29b6f6; background-color: rgba(41, 182, 246, 0.05); padding: 15px 20px; border-radius: 0 8px 8px 0;">
-<h4 style="margin: 0 0 10px 0; color: #29b6f6; font-size: 1.2rem;">🤔 시나리오 B (단기 수급/테마 매매) : 주봉 매수 신호 ➕ 스코어 4점 이하</h4>
-<p style="margin: 0 0 5px 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 상태:</b> 기업 가치는 부실하거나 비싸지만, 세력의 돈이 단기적으로 강하게 들어온 전형적인 테마/급등주 패턴임.</p>
-<p style="margin: 0; color: #c9d1d9; font-size: 1.0rem; line-height: 1.6;"><b>• 대응:</b> 반드시 차트의 <b>'ATR 스탑(점선 방어선)'</b>을 칼같이 지키고, 철저하게 짧게 먹고 빠지는 단기 매매로만 접근해야 함.</p>
-</div>
-</div>
-""", unsafe_allow_html=True)
-
-            st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("### 🤖 전문가 핵심 지표 브리핑 (Tier 1)")
             if st.button("✨ 퀀트 데이터 기반 AI 분석 보고서 작성", type="primary", width="stretch"):
                 with st.spinner(f"[{company_name}]의 수급 데이터와 4차원 매트릭스를 분석하여 AI 브리핑을 작성 중입니다... 🧠"):
@@ -930,7 +760,7 @@ if symbol and yf_symbol:
                         model = genai.GenerativeModel('gemini-2.5-flash', generation_config={"temperature": 0.7, "max_output_tokens": 8000})
                         ai_median_pe = f"{median_pe:.2f}배" if not peer_df.empty else "데이터 없음"
                         
-                      prompt = f"""
+                        prompt = f"""
                         당신은 월스트리트와 여의도를 섭렵한 최고의 수석 퀀트 애널리스트입니다. 
                         제공된 [{company_name}]의 팩트 데이터와 당신이 보유한 기업 지식을 종합하여, 
                         아래 [지정된 리포트 양식]에 맞춰 완벽한 네이버 블로그용 심층 분석 보고서를 작성해 주세요.
@@ -938,9 +768,9 @@ if symbol and yf_symbol:
                         [분석용 기초 데이터]
                         - 퀀트 시스템 점수: 10점 만점에 {score}점 ({judgment})
                         - 적용 모델: {model_used} / 외국인 소진율 {frgn_hold_str}, 최근 5일 외인 {frgn_5d}주, 기관 {inst_5d}주 순매수
-                        - 펀더멘털: ROE {roe*100:.1f}% / 배당성향 {payout_ratio*100:.1f}% / 공매도 {short_text if 'short_text' in locals() else 'N/A'}
+                        - 펀더멘털: ROE {roe*100:.1f}% / 배당성향 {payout_ratio*100:.1f}%
                         - 밸류에이션: 선행 PER {forward_pe}배, PBR {pbr}배, P/S {ps_ratio}배
-                        - 동종 업계(경쟁사) 중앙값: PER {ai_median_pe if 'ai_median_pe' in locals() else 'N/A'}, P/B {median_pb}배
+                        - 동종 업계(경쟁사) 중앙값: PER {ai_median_pe}, P/B {median_pb}배
 
                         [지정된 리포트 양식] (반드시 아래 순서와 텍스트를 100% 똑같이 지켜서 출력할 것. 괄호 안의 지침에 맞춰 분석 내용을 작성할 것. 마침표 뒤에는 무조건 줄바꿈 2번(엔터) 할 것.)
                         
@@ -986,11 +816,20 @@ if symbol and yf_symbol:
                         response = model.generate_content(prompt)
                         st.success("✅ 종합 브리핑 완료!")
                         with st.container(border=True):
-                            clean_text = re.sub(r'[\U00010000-\U0010ffff]', '', response.text.replace("*", ""))
-                            clean_text = re.sub(r'([가-힣])\.\s*', r'\1.\n\n', clean_text)
-                            clean_text = re.sub(r'\n{3,}', '\n\n', clean_text).strip()
-                            st.markdown(clean_text)
-                    except Exception as e: st.error(f"🚨 AI 오류: {e}")
+                            clean_text = response.text
+                            clean_text = re.sub(r'[\U00010000-\U0010ffff]', '', clean_text)
+                            clean_text = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', clean_text)
+                            clean_text = clean_text.replace("*", "")
+                            clean_text = re.sub(r'([가-힣])\.\s*', r'\1.<br><br>', clean_text)
+                            clean_text = clean_text.replace('\n', '<br>')
+                            
+                            st.markdown(f"""
+<div style="font-size: 20px; line-height: 1.8; color: #e6edf3; padding: 10px;">
+{clean_text}
+</div>
+""", unsafe_allow_html=True)
+                    except Exception as e: 
+                        st.error(f"🚨 AI 오류: {e}")
 
     except Exception as e:
         st.error(f"데이터 처리 중 오류가 발생했습니다: {e}")
