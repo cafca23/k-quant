@@ -1,6 +1,6 @@
 streamlit
 yfinance
-finance-datareader
+finance-datareader>=0.9.92
 pandas
 numpy
 plotly
