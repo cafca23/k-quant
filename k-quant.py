@@ -9,6 +9,7 @@ from datetime import datetime
 import google.generativeai as genai
 import re
 import requests
+import time  # 💡 서버 재접속 대기 시간을 위한 모듈 추가
 from bs4 import BeautifulSoup
 
 st.set_page_config(page_title="국장 All 퀀트 스캐너", layout="wide", page_icon="📊", initial_sidebar_state="expanded")
@@ -47,13 +48,32 @@ def get_macro_data():
     except: tnx = 3.5  
     return 1.0, float(tnx)
 
+# 💡 [핵심 패치] 외부 서버 통신 에러 무적 방어 로직 적용
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_krx_list():
-    return fdr.StockListing('KRX')
+    # 1. 먼저 KRX 전체 리스트를 3번 재시도하며 불러옵니다.
+    for attempt in range(3):
+        try:
+            return fdr.StockListing('KRX')
+        except Exception as e:
+            time.sleep(1) # 1초 쉬고 다시 접속 시도
+            
+    # 2. 3번 다 실패하면, 서버 차단일 수 있으므로 코스피와 코스닥을 따로 불러와서 강제로 합칩니다.
+    try:
+        kospi_df = fdr.StockListing('KOSPI')
+        kosdaq_df = fdr.StockListing('KOSDAQ')
+        combined_df = pd.concat([kospi_df, kosdaq_df], ignore_index=True)
+        return combined_df
+    except Exception as e:
+        # 최악의 경우 (인터넷 완전 단절) 빈 데이터프레임을 반환하여 프로그램이 뻗는 것을 방지
+        st.error("🚨 현재 한국거래소(KRX) 서버와 통신이 원활하지 않아 종목 리스트를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.")
+        return pd.DataFrame(columns=['Code', 'Name', 'Market'])
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_search_options(df):
     options = []
+    if df.empty: return options # 데이터가 비어있을 경우 빈 리스트 반환 방어
+    
     for _, row in df.iterrows():
         code = row['Code']
         name = str(row['Name'])
@@ -201,6 +221,8 @@ def get_peers_data(target_symbol, peer_str, krx_df):
     if target_symbol not in peer_list:
         peer_list = [target_symbol] + peer_list
     data = []
+    if krx_df.empty: return pd.DataFrame(data) # 데이터 없을 시 방어
+    
     for p in peer_list:
         try:
             matched = krx_df[krx_df['Code'] == p]
@@ -297,10 +319,14 @@ with st.sidebar:
     
     if ticker_input:
         symbol = ticker_input
-        matched_row = krx_df[krx_df['Code'] == symbol]
-        if not matched_row.empty:
-            market_type = matched_row.iloc[0]['Market']
-            company_name = matched_row.iloc[0]['Name']
+        if not krx_df.empty:
+            matched_row = krx_df[krx_df['Code'] == symbol]
+            if not matched_row.empty:
+                market_type = matched_row.iloc[0]['Market']
+                company_name = matched_row.iloc[0]['Name']
+            else:
+                market_type = "KOSPI"
+                company_name = symbol
         else:
             market_type = "KOSPI"
             company_name = symbol
@@ -444,7 +470,7 @@ if symbol and yf_symbol:
             
             debt_to_equity = info.get('debtToEquity', None)
             peg_ratio = info.get('pegRatio', None)
-            shares = krx_df[krx_df['Code'] == symbol].iloc[0]['Stocks'] if not krx_df[krx_df['Code'] == symbol].empty else info.get('sharesOutstanding', None)
+            shares = krx_df[krx_df['Code'] == symbol].iloc[0]['Stocks'] if not krx_df.empty and not krx_df[krx_df['Code'] == symbol].empty else info.get('sharesOutstanding', None)
             sector = str(info.get('sector', '')).lower()
             industry = str(info.get('industry', '')).lower()
             
