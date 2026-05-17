@@ -30,9 +30,6 @@ except ModuleNotFoundError:
 
 st.set_page_config(page_title="국장 All 퀀트 스캐너", layout="wide", page_icon="📊", initial_sidebar_state="expanded")
 
-# ... (이하 기존 코드 동일) ...
-
-# ... (이하 기존 코드 동일) ...
 # --- Custom Premium CSS ---
 st.markdown("""
 <style>
@@ -108,8 +105,8 @@ def get_clean_surplus_data(symbol, dart_api_key):
             'DIV_T': div_t
         }
     except Exception as e:
-    st.sidebar.error(f"DART 엔진 오류: {e}") # 사이드바에 빨간색으로 에러 표시
-    return None
+        st.sidebar.error(f"DART 엔진 오류: {e}") # 사이드바에 빨간색으로 에러 표시
+        return None
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_macro_data():
