@@ -9,8 +9,9 @@ from datetime import datetime
 import google.generativeai as genai
 import re
 import requests
-import time  # 💡 서버 재접속 대기 시간을 위한 모듈 추가
+import time
 from bs4 import BeautifulSoup
+import OpenDartReader # 💡 클린 서플러스 엔진용 라이브러리 추가
 
 st.set_page_config(page_title="국장 All 퀀트 스캐너", layout="wide", page_icon="📊", initial_sidebar_state="expanded")
 
@@ -42,37 +43,82 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# 💡 신규 추가: 클린 서플러스 데이터 추출용 엔진
+@st.cache_data(ttl=86400, show_spinner="DART 원본 재무 데이터를 조회하여 클린 서플러스를 계산 중입니다... 🔍")
+def get_clean_surplus_data(symbol, dart_api_key):
+    """
+    DART API를 통해 과거 2개년 자본총계와 배당금을 추출하여 클린 서플러스 ROE를 계산합니다.
+    """
+    try:
+        dart = OpenDartReader(dart_api_key)
+        target_year = datetime.today().year - 1 
+        
+        fs_current = dart.finstate(symbol, target_year, reprt_code='11011') 
+        fs_prev = dart.finstate(symbol, target_year - 1, reprt_code='11011')
+        
+        if fs_current is None or fs_prev is None or fs_current.empty or fs_prev.empty:
+            return None
+            
+        def get_equity(fs_df):
+            eq = fs_df.loc[(fs_df['account_nm'] == '자본총계') & (fs_df['fs_div'] == 'CFS'), 'thstrm_amount']
+            if eq.empty:
+                eq = fs_df.loc[(fs_df['account_nm'] == '자본총계') & (fs_df['fs_div'] == 'OFS'), 'thstrm_amount']
+            if eq.empty: return None
+            return float(eq.values[0].replace(',', ''))
+            
+        bv_t = get_equity(fs_current)
+        bv_t1 = get_equity(fs_prev)
+        
+        if bv_t is None or bv_t1 is None or bv_t1 == 0: return None
+        
+        div_t = 0
+        div_data = dart.dividend(symbol, target_year, reprt_code='11011')
+        if div_data is not None and not div_data.empty:
+            div_row = div_data.loc[div_data['se'] == '현금배당금총액(백만원)']
+            if not div_row.empty:
+                div_val = div_row['thstrm'].values[0]
+                if pd.notna(div_val) and str(div_val).strip() != '-':
+                    div_t = float(str(div_val).replace(',', '')) * 1000000 
+                    
+        clean_surplus_profit = bv_t - bv_t1 + div_t
+        cs_roe = clean_surplus_profit / bv_t1
+        
+        return {
+            'CS_ROE': cs_roe,
+            'BV_T': bv_t,
+            'BV_T1': bv_t1,
+            'DIV_T': div_t
+        }
+    except Exception as e:
+        return None 
+
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_macro_data():
     try: tnx = yf.Ticker("^TNX").history(period="1d")['Close'].iloc[-1]
     except: tnx = 3.5  
     return 1.0, float(tnx)
 
-# 💡 [핵심 패치] 외부 서버 통신 에러 무적 방어 로직 적용
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_krx_list():
-    # 1. 먼저 KRX 전체 리스트를 3번 재시도하며 불러옵니다.
     for attempt in range(3):
         try:
             return fdr.StockListing('KRX')
         except Exception as e:
-            time.sleep(1) # 1초 쉬고 다시 접속 시도
+            time.sleep(1)
             
-    # 2. 3번 다 실패하면, 서버 차단일 수 있으므로 코스피와 코스닥을 따로 불러와서 강제로 합칩니다.
     try:
         kospi_df = fdr.StockListing('KOSPI')
         kosdaq_df = fdr.StockListing('KOSDAQ')
         combined_df = pd.concat([kospi_df, kosdaq_df], ignore_index=True)
         return combined_df
     except Exception as e:
-        # 최악의 경우 (인터넷 완전 단절) 빈 데이터프레임을 반환하여 프로그램이 뻗는 것을 방지
         st.error("🚨 현재 한국거래소(KRX) 서버와 통신이 원활하지 않아 종목 리스트를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.")
         return pd.DataFrame(columns=['Code', 'Name', 'Market'])
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_search_options(df):
     options = []
-    if df.empty: return options # 데이터가 비어있을 경우 빈 리스트 반환 방어
+    if df.empty: return options 
     
     for _, row in df.iterrows():
         code = row['Code']
@@ -221,7 +267,7 @@ def get_peers_data(target_symbol, peer_str, krx_df):
     if target_symbol not in peer_list:
         peer_list = [target_symbol] + peer_list
     data = []
-    if krx_df.empty: return pd.DataFrame(data) # 데이터 없을 시 방어
+    if krx_df.empty: return pd.DataFrame(data) 
     
     for p in peer_list:
         try:
@@ -286,6 +332,14 @@ krx_df = get_krx_list()
 
 with st.sidebar:
     st.markdown("### ⚙️ 국장 4차원 분석 설정")
+    
+    # 💡 신규 추가: 사이드바 DART API 입력
+    _default_dart = st.secrets["DART_API_KEY"] if "DART_API_KEY" in st.secrets else ""
+    dart_api_key = st.text_input("🔑 DART API KEY (클린 서플러스용)", 
+                                 value=_default_dart, 
+                                 type="password",
+                                 help="DART API 키를 입력하면 S-RIM 계산 시 더티 서플러스를 걷어낸 '진짜 적정주가'를 산출합니다.")
+    st.divider()
     
     if 'target_symbol' not in st.session_state:
         st.session_state.target_symbol = "005930" 
@@ -479,10 +533,20 @@ if symbol and yf_symbol:
             
             peer_df = get_peers_data(symbol, peer_input, krx_df)
             
+            # 💡 신규 추가: 클린 서플러스 ROE 획득
+            cs_roe = np.nan
+            if dart_api_key and len(dart_api_key) > 30: 
+                cs_data = get_clean_surplus_data(symbol, dart_api_key)
+                if cs_data:
+                    cs_roe = cs_data['CS_ROE']
+
+            # 💡 수정됨: S-RIM 공식에 클린 서플러스 ROE 우선 적용
             rim_value = "N/A"
-            if pd.notna(bps) and pd.notna(roe):
+            applied_roe = cs_roe if pd.notna(cs_roe) else roe 
+            
+            if pd.notna(bps) and pd.notna(applied_roe):
                 req_return = discount_rate / 100
-                rim_value = bps * (roe / req_return) if roe > 0 else bps * 0.5 
+                rim_value = bps * (applied_roe / req_return) if applied_roe > 0 else bps * 0.5 
             
             fcf = info.get('freeCashflow', None)
             dcf_value = "N/A"
@@ -592,19 +656,38 @@ if symbol and yf_symbol:
                 df_wk['Signal_Reentry'] = ((df_wk['Close'] > df_wk['MA60']) & ((df_wk['Prev_Close'] <= df_wk['MA10'].shift(1)) & (df_wk['Close'] > df_wk['MA10'])) & (df_wk['Close'] > df_wk['Open']) & (df_wk['MA20'] > df_wk['MA20'].shift(1)) & (df_wk['Close'] > df_wk['ATR_Stop']) & (~df_wk['Signal_Main']))
                 df_wk['Signal_Sell'] = (df_wk['Prev_Close'] >= df_wk['ATR_Stop'].shift(1)) & (df_wk['Close'] < df_wk['ATR_Stop'])
 
+            # 💡 수정됨: 퀀트 스코어 체계에 '회계적 투명성(클린 서플러스)' 지표 추가
             score = 0; checklist = []
+            
+            # 1. 가치
             if margin_of_safety != "N/A":
                 if margin_of_safety > 20: score += 2; checklist.append({"status": "pass", "category": "가치", "desc": f"적정주가 대비 안전마진 {margin_of_safety:.1f}%", "score": "+2"})
                 elif margin_of_safety > 0: score += 1; checklist.append({"status": "pass", "category": "가치", "desc": f"적정주가 대비 안전마진 {margin_of_safety:.1f}%", "score": "+1"})
                 else: checklist.append({"status": "fail", "category": "가치", "desc": "고평가 상태 (안전마진 부족)", "score": "0"})
             else: checklist.append({"status": "info", "category": "가치", "desc": "적정 주가 산출 불가", "score": "-"})
                 
-            if pd.notna(roe) and roe > 0.15: score += 2; checklist.append({"status": "pass", "category": "수익성", "desc": f"ROE 15% 초과 ({roe*100:.1f}%)", "score": "+2"})
-            else: checklist.append({"status": "fail", "category": "수익성", "desc": f"ROE 15% 미달", "score": "0"})
+            # 2. 수익성 (클린 서플러스 로직으로 강화)
+            if pd.notna(applied_roe) and applied_roe > 0.15: 
+                score += 2
+                roe_label = "클린 ROE" if pd.notna(cs_roe) else "일반 ROE"
+                checklist.append({"status": "pass", "category": "수익성", "desc": f"{roe_label} 15% 초과 ({applied_roe*100:.1f}%)", "score": "+2"})
+            else: 
+                checklist.append({"status": "fail", "category": "수익성", "desc": f"ROE 15% 미달", "score": "0"})
+            
+            # 3. 🚨 회계 투명성 필터 (더티 서플러스 감점 시스템)
+            if pd.notna(cs_roe) and pd.notna(roe):
+                roe_diff = roe - cs_roe # HTS 표면적 ROE와 진짜 ROE의 차이
+                if roe_diff > 0.05: # 장부상 ROE가 클린 ROE보다 5%p 이상 뻥튀기 되어 있다면
+                    score -= 1 # 1점 감점 (페널티)
+                    checklist.append({"status": "fail", "category": "회계 주의", "desc": f"더티 서플러스 포착 (일회성 이익/착시 {roe_diff*100:.1f}%p)", "score": "-1"})
+                else:
+                    checklist.append({"status": "pass", "category": "회계 투명", "desc": "순수 영업 기반의 클린 자본 변동 확인", "score": "+0"})
                 
+            # 4. 건전성
             if debt_to_equity is not None and debt_to_equity < 100: score += 2; checklist.append({"status": "pass", "category": "건전성", "desc": f"안정적인 부채비율 ({debt_to_equity:.1f}%)", "score": "+2"})
             else: checklist.append({"status": "fail", "category": "건전성", "desc": f"부채비율 높음", "score": "0"})
                 
+            # 5. 일봉 추세
             if pd.notna(sma50_val) and pd.notna(sma200_val):
                 if current_price > sma50_val and sma50_val > sma200_val: score += 3; checklist.append({"status": "pass", "category": "일봉 추세", "desc": "정배열 상승", "score": "+3"})
                 elif current_price > sma50_val and sma50_val <= sma200_val: score += 1; checklist.append({"status": "info", "category": "일봉 추세", "desc": "바닥 반등 시작", "score": "+1"})
@@ -612,6 +695,7 @@ if symbol and yf_symbol:
                 else: checklist.append({"status": "fail", "category": "일봉 추세", "desc": "역배열 하락세", "score": "0"})
             else: checklist.append({"status": "fail", "category": "일봉 추세", "desc": "추세 판독 불가 (신규 상장 데이터 부족)", "score": "0"})
                 
+            # 6. 단기 수급
             if pd.notna(rsi_val) and rsi_val < 70: score += 1; checklist.append({"status": "pass", "category": "단기 수급", "desc": f"RSI 과열 아님 ({rsi_val:.1f})", "score": "+1"})
             else: checklist.append({"status": "fail", "category": "단기 수급", "desc": "RSI 단기 과열", "score": "0"})
 
@@ -658,22 +742,22 @@ if symbol and yf_symbol:
             st.markdown("### 2. 주요 기술지표")
             with st.container(border=True):
                 c1, c2, c3, c4 = st.columns(4)
-                with c1: st.metric(label="현재 주가", value=fmt_price(current_price), delta=f"{drawdown:.2f}% (최고가대비)")
-                with c2: st.metric(label=f"적정 주가 ({model_used})", value=fmt_price(final_fair_value) if final_fair_value != "N/A" else "N/A", 
+                c1.metric(label="현재 주가", value=fmt_price(current_price), delta=f"{drawdown:.2f}% (최고가대비)")
+                c2.metric(label=f"적정 주가 ({model_used})", value=fmt_price(final_fair_value) if final_fair_value != "N/A" else "N/A", 
                                    delta=f"{margin_of_safety:.2f}% (안전마진)" if margin_of_safety != "N/A" else None,
                                    help="테크/성장주는 현금흐름할인(DCF) 모델로, 가치/배당주는 그레이엄 모델로 자동 산출됩니다.")
-                with c3: st.metric(label="1년 MDD (최대 낙폭)", value=f"{mdd:.2f}%", delta="Max Drawdown", delta_color="inverse")
-                with c4: st.metric(label="EPS (주당순이익)", value=fmt_price(eps) if pd.notna(eps) else "N/A", 
+                c3.metric(label="1년 MDD (최대 낙폭)", value=f"{mdd:.2f}%", delta="Max Drawdown", delta_color="inverse")
+                c4.metric(label="EPS (주당순이익)", value=fmt_price(eps) if pd.notna(eps) else "N/A", 
                                    help="1주당 회사가 벌어들인 순이익을 의미해요. 숫자가 클수록 회사의 기업 가치가 크고, 배당 줄 수 있는 여유가 늘어났다고 볼 수 있어요.")
                     
             with st.container(border=True):
                 c5, c6, c7, c8 = st.columns(4)
-                with c5: st.metric(label="PBR", value=f"{pbr:.2f}배" if pd.notna(pbr) and pbr != 'N/A' else "N/A", 
+                c5.metric(label="PBR", value=f"{pbr:.2f}배" if pd.notna(pbr) and pbr != 'N/A' else "N/A", 
                                    help="주가가 1주당 장부상 순자산가치의 몇 배로 거래되는지 나타냅니다. 1 미만이면 회사를 다 팔아도 남는 돈보다 주가가 싸다는 뜻(저평가)입니다.")
-                with c6: st.metric(label="ROE", value=f"{roe*100:.2f}%" if pd.notna(roe) else "N/A", 
+                c6.metric(label="ROE", value=f"{roe*100:.2f}%" if pd.notna(roe) else "N/A", 
                                    help="회사가 주주의 돈(자본)을 굴려서 1년간 얼마를 벌었는지 보여주는 핵심 수익성 지표입니다. (통상 15% 이상이면 우량 기업으로 평가)")
-                with c7: st.metric(label="52주 최고가", value=fmt_price(high_1y))
-                with c8: st.metric(label="52주 최저가", value=fmt_price(low_1y))
+                c7.metric(label="52주 최고가", value=fmt_price(high_1y))
+                c8.metric(label="52주 최저가", value=fmt_price(low_1y))
             
             fund_status = "2. 주요 기술지표 브리핑"
             fund_color = "#29b6f6" 
@@ -717,9 +801,9 @@ if symbol and yf_symbol:
             
             with st.container(border=True):
                 mc1, mc2, mc3 = st.columns(3)
-                with mc1: st.metric("외국인 보유율 (소진율)", frgn_hold_str, help="현재 외국인이 전체 주식 중 얼마나 쥐고 있는지 나타냅니다. 한국 시장은 13F 공시 같은 기관 전체 보유율은 공개되지 않으므로 외인 비중 추적이 핵심입니다.")
-                with mc2: st.metric("최근 5거래일 외국인 순매매", f"{frgn_5d:,.0f}주" if frgn_5d != 0 else "N/A", delta=f_delta, delta_color=f_color, help="최근 5일 동안 외국인이 이 주식을 순수하게 사모았는지(매집), 팔았는지(이탈) 1주 단위로 보여줍니다.")
-                with mc3: st.metric("최근 5거래일 기관 순매매", f"{inst_5d:,.0f}주" if inst_5d != 0 else "N/A", delta=i_delta, delta_color=i_color, help="최근 5일 동안 연기금, 투신 등 기관투자자들이 이 주식을 순수하게 매집했는지 이탈했는지 보여줍니다.")
+                mc1.metric("외국인 보유율 (소진율)", frgn_hold_str, help="현재 외국인이 전체 주식 중 얼마나 쥐고 있는지 나타냅니다. 한국 시장은 13F 공시 같은 기관 전체 보유율은 공개되지 않으므로 외인 비중 추적이 핵심입니다.")
+                mc2.metric("최근 5거래일 외국인 순매매", f"{frgn_5d:,.0f}주" if frgn_5d != 0 else "N/A", delta=f_delta, delta_color=f_color, help="최근 5일 동안 외국인이 이 주식을 순수하게 사모았는지(매집), 팔았는지(이탈) 1주 단위로 보여줍니다.")
+                mc3.metric("최근 5거래일 기관 순매매", f"{inst_5d:,.0f}주" if inst_5d != 0 else "N/A", delta=i_delta, delta_color=i_color, help="최근 5일 동안 연기금, 투신 등 기관투자자들이 이 주식을 순수하게 매집했는지 이탈했는지 보여줍니다.")
             
             st.markdown("<br><h3 style='margin-bottom: 10px;'>🚨 4. 밸류업 & 잠재 리스크 지표</h3>", unsafe_allow_html=True)
             with st.container(border=True):
@@ -737,9 +821,9 @@ if symbol and yf_symbol:
                 margin_delta = "대형주 신용 면제" if margin_val == "안전" else "단기 빚투/반대매매 위험"
                 margin_color = "normal" if margin_val == "안전" else "inverse"
                 
-                with kc1: st.metric(label="총 주주환원율 (배당 등)", value=div_val, delta=div_delta, delta_color=div_color, help="회사가 벌어들인 돈을 주주에게 얼마나 돌려주는지(배당수익률 포함) 나타냅니다. 코리아 디스카운트 해소의 핵심 열쇠입니다.")
-                with kc2: st.metric(label="CB/BW 오버행 (잠재매도) 리스크", value=overhang_val, delta=overhang_delta, delta_color=overhang_color, help="코스닥 소형주의 경우, 주가가 오를 때마다 전환사채(CB)나 신주인수권부사채(BW)가 주식으로 변환되어 매물 폭탄으로 쏟아질 위험을 경고합니다.")
-                with kc3: st.metric(label="신용잔고 경고 (빚투 비율)", value=margin_val, delta=margin_delta, delta_color=margin_color, help="개미들이 증권사에 빚을 내서(신용) 산 물량입니다. 이 비율이 높으면 세력들이 반대매매를 유도하기 위해 주가를 의도적으로 폭락시킬 위험이 매우 큽니다.")
+                kc1.metric(label="총 주주환원율 (배당 등)", value=div_val, delta=div_delta, delta_color=div_color, help="회사가 벌어들인 돈을 주주에게 얼마나 돌려주는지(배당수익률 포함) 나타냅니다. 코리아 디스카운트 해소의 핵심 열쇠입니다.")
+                kc2.metric(label="CB/BW 오버행 (잠재매도) 리스크", value=overhang_val, delta=overhang_delta, delta_color=overhang_color, help="코스닥 소형주의 경우, 주가가 오를 때마다 전환사채(CB)나 신주인수권부사채(BW)가 주식으로 변환되어 매물 폭탄으로 쏟아질 위험을 경고합니다.")
+                kc3.metric(label="신용잔고 경고 (빚투 비율)", value=margin_val, delta=margin_delta, delta_color=margin_color, help="개미들이 증권사에 빚을 내서(신용) 산 물량입니다. 이 비율이 높으면 세력들이 반대매매를 유도하기 위해 주가를 의도적으로 폭락시킬 위험이 매우 큽니다.")
                 
                 st.caption("※ CB/BW 오버행 및 신용잔고 수치는 종목의 시총과 소속 시장(코스닥)을 기반으로 한 1차 AI 위험 판독 결과입니다. 정확한 수치는 HTS 수급 탭을 병행 확인하십시오.")
             
