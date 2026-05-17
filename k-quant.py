@@ -12,18 +12,25 @@ import requests
 import time
 from bs4 import BeautifulSoup
 
-# 💡 [필승 해결책] 스트림릿 서버가 모듈을 못 찾으면 코드가 스스로 강제 설치하도록 조치
-import subprocess
+# 💡 [초강력 방어 로직] 스트림릿 uv 엔진의 대소문자 버그를 강제 초기화
 import sys
+import subprocess
 
 try:
     import OpenDartReader
-except ImportError:
-    # 모듈이 없으면 서버 터미널에 pip install 명령을 직접 때려버림
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "OpenDartReader"])
-    import OpenDartReader 
+except ModuleNotFoundError:
+    try:
+        # uv가 소문자로 폴더를 풀었을 경우를 대비한 우회 접속
+        import opendartreader as OpenDartReader
+    except ModuleNotFoundError:
+        # 그래도 못 찾으면, 꼬여있는 기존 설치 파일을 싹 밀어버리고 순정 pip로 강제 재설치 (--force-reinstall)
+        print("🚨 OpenDartReader 꼬임 감지: 순정 pip로 강제 재설치를 시작합니다...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--force-reinstall", "--no-deps", "--no-cache-dir", "OpenDartReader"])
+        import OpenDartReader
 
 st.set_page_config(page_title="국장 All 퀀트 스캐너", layout="wide", page_icon="📊", initial_sidebar_state="expanded")
+
+# ... (이하 기존 코드 동일) ...
 
 # ... (이하 기존 코드 동일) ...
 # --- Custom Premium CSS ---
