@@ -24,7 +24,6 @@ except ModuleNotFoundError:
         import opendartreader as OpenDartReader
     except ModuleNotFoundError:
         # 그래도 못 찾으면, 꼬여있는 기존 설치 파일을 싹 밀어버리고 순정 pip로 강제 재설치 (--force-reinstall)
-        print("🚨 OpenDartReader 꼬임 감지: 순정 pip로 강제 재설치를 시작합니다...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", "--force-reinstall", "--no-deps", "--no-cache-dir", "OpenDartReader"])
         import OpenDartReader
 
@@ -65,7 +64,12 @@ def get_clean_surplus_data(symbol, dart_api_key):
     DART API를 통해 과거 2개년 자본총계와 배당금을 추출하여 클린 서플러스 ROE를 계산합니다.
     """
     try:
-        dart = OpenDartReader(dart_api_key)
+        # 💡 [버그 픽스] 파이썬 폴더(모듈)와 실행 파일(클래스) 이름 충돌 방어 로직
+        if hasattr(OpenDartReader, 'OpenDartReader'):
+            dart = OpenDartReader.OpenDartReader(dart_api_key)
+        else:
+            dart = OpenDartReader(dart_api_key)
+            
         target_year = datetime.today().year - 1 
         
         fs_current = dart.finstate(symbol, target_year, reprt_code='11011') 
@@ -424,7 +428,7 @@ with st.sidebar:
                 
                 if is_cyclical:
                     stock_tier = "🔄 경기 순환 / 턴어라운드주"
-                    guide_text = "업황 사이클을 타는 국장 굴뚝주입니다. 적자라도 턴어라운드 시 PBR 밴드 하단에서 강력한 시세가 나옵니다."
+                    guide_text = "업황 사이클을 타는 국장 굴뚝주입니다. 적자라도 턴어라운드 시 PBR 밴드 하단에서 강력 시세가 나옵니다."
                     default_g = 7.0
                 elif is_hyper_growth:
                     stock_tier = "🔥 초고성장 / 적자/투자주"
