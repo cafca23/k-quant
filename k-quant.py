@@ -11,10 +11,21 @@ import re
 import requests
 import time
 from bs4 import BeautifulSoup
-import OpenDartReader # 💡 클린 서플러스 엔진용 라이브러리 추가
+
+# 💡 [필승 해결책] 스트림릿 서버가 모듈을 못 찾으면 코드가 스스로 강제 설치하도록 조치
+import subprocess
+import sys
+
+try:
+    import OpenDartReader
+except ImportError:
+    # 모듈이 없으면 서버 터미널에 pip install 명령을 직접 때려버림
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "OpenDartReader"])
+    import OpenDartReader 
 
 st.set_page_config(page_title="국장 All 퀀트 스캐너", layout="wide", page_icon="📊", initial_sidebar_state="expanded")
 
+# ... (이하 기존 코드 동일) ...
 # --- Custom Premium CSS ---
 st.markdown("""
 <style>
